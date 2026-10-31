@@ -10,7 +10,7 @@ import {
   useUpdateEmployee,
   type Employee,
 } from '@/lib/api-client';
-import { AlertCircle, ArrowDownWideNarrow, ArrowUpRight, BadgePercent, BarChart3, CalendarDays, ChevronDown, CircleDollarSign, Eye, EyeOff, FileWarning, Plus, RefreshCw, Search, Users } from 'lucide-react';
+import { AlertCircle, ArrowDownWideNarrow, ArrowUpRight, BadgePercent, BarChart3, CalendarDays, ChevronDown, CircleDollarSign, Download, Eye, EyeOff, FileWarning, Plus, RefreshCw, Search, Users } from 'lucide-react';
 import { Link } from '@/pos/router-compat';
 import type { SalonId } from '@/pos/lib/menu';
 import { displayStaffName } from '@/lib/utils';
