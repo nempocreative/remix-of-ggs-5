@@ -1,6 +1,6 @@
 # Remix setup
 
-- [ ] Configure and verify the separate Oca and Bela cashier logins with the supplied PIN.
+- [x] Configure and verify the separate Oca and Bela cashier logins with the supplied PIN.
 
 - [x] Verify copied migration history is cleared and the scaffold is empty.
 - [ ] Update OWNER_INITIAL_PIN and SESSION_SECRET — secure form declined by user; OWNER_INITIAL_PIN is not referenced by current application code.
