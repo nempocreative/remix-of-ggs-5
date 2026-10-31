@@ -74,7 +74,7 @@ export class Response {
 export type NextFunction = (err?: unknown) => void;
 type Handler = (req: Request, res: Response, next: NextFunction) => unknown;
 type Layer =
-  | { kind: "use"; handlers: (Handler | Router)[] }
+  | { kind: "use"; handlers: (Handler | RouterImpl)[] }
   | { kind: "route"; method: string; regex: RegExp; keys: string[]; handlers: Handler[] };
 
 function compile(path: string) {
@@ -86,9 +86,9 @@ function compile(path: string) {
   return { regex: new RegExp(`^${pattern}/?$`), keys };
 }
 
-export class Router {
+export class RouterImpl {
   layers: Layer[] = [];
-  use(...handlers: (Handler | Router)[]) {
+  use(...handlers: (Handler | RouterImpl)[]) {
     this.layers.push({ kind: "use", handlers });
     return this;
   }
@@ -108,7 +108,7 @@ export class Router {
     for (const layer of this.layers) {
       if (layer.kind === "use") {
         for (const h of layer.handlers) {
-          if (h instanceof Router) {
+          if (h instanceof RouterImpl) {
             if (await h.handle(req, res)) return true;
           } else {
             const proceed = await runChain([h], req, res);
@@ -143,8 +143,11 @@ async function runChain(handlers: Handler[], req: Request, res: Response): Promi
   return true;
 }
 
-export type IRouter = Router;
-export type Express = Router;
+export function Router() {
+  return new RouterImpl();
+}
+export type IRouter = RouterImpl;
+export type Express = RouterImpl;
 
 function parseQuery(sp: URLSearchParams) {
   const q: Dict = {};
@@ -172,7 +175,7 @@ const logger = {
   debug: () => {},
 };
 
-export async function dispatch(router: Router, request: globalThis.Request, prefix: string) {
+export async function dispatch(router: RouterImpl, request: globalThis.Request, prefix: string) {
   const url = new URL(request.url);
   const headers: Record<string, string> = {};
   request.headers.forEach((v, k) => (headers[k] = v));
