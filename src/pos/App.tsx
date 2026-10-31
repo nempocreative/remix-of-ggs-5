@@ -52,8 +52,10 @@ import { displayStaffName } from '@/lib/utils';
 import { downloadReceiptPdf } from '@/pos/lib/receipt-pdf';
 import { downloadMemberCardPdf } from '@/pos/lib/member-card-pdf';
 import { defaultReceiptCopy } from '@/pos/lib/receipt-copy';
+import { calculateSaleDiscounts, serviceDiscount } from '@/lib/sale-discounts';
+import { ServiceDiscountInput } from '@/pos/components/service-discount-input';
 
-type CartLine = { serviceId: string; name: string; unitPrice: number; quantity: number; employeeId?: string | null; employeeName?: string | null; commissionPercent?: number; commissionBase?: number; commissionAmount?: number };
+type CartLine = { serviceId: string; name: string; unitPrice: number; quantity: number; discount?: number; employeeId?: string | null; employeeName?: string | null; commissionPercent?: number; commissionBase?: number; commissionAmount?: number };
 type DiscountMode = 'nominal' | 'percent';
 type Sale = { id: string; salon: SalonId; invoiceNumber: string; createdAt: string; customerName: string; customerWhatsapp?: string; customerPhone?: string | null; cashierName?: string | null; paymentMethod: string; discountMode?: DiscountMode; discountValue?: number; items: CartLine[]; subtotal: number; discount: number; total: number; amountReceived: number; change: number; pointsEarned?: number; pointsBalance?: number };
 type CustomerProfile = { salon: SalonId; phone: string; memberCode: string; name: string; points: number; transactionCount: number; totalSpent: number; lastTransactionAt: string | null };
@@ -462,7 +464,7 @@ function ReceiptPreview({ salon, customerName, customerWhatsapp, cashierName, pr
         <div className="my-3 border-t border-dashed border-[#e7d2dd]"/>
         <div className="space-y-2">
           {items.map((item,index)=><div key={`${item.serviceId}-${item.unitPrice}-${index}`} className="flex justify-between gap-3 text-[10px]">
-            <div className="min-w-0"><p className="font-semibold text-[#56374a]">{item.name}</p><p className="text-[9px] text-[#9a7b8c]">{item.quantity} × {money(item.unitPrice)}</p></div>
+            <div className="min-w-0"><p className="font-semibold text-[#56374a]">{item.name}</p><p className="text-[9px] text-[#9a7b8c]">{item.quantity} × {money(item.unitPrice)}</p>{serviceDiscount(item)>0&&<p className="text-[9px] text-primary">Diskon layanan − {money(serviceDiscount(item))}</p>}</div>
             <b className="shrink-0 text-[#56374a]">{money(item.quantity*item.unitPrice)}</b>
           </div>)}
         </div>
@@ -1038,22 +1040,7 @@ function Cashier() {
   const hasValidEmployeeAssignments = cart.length > 0 && cart.every((line) => !!line.employeeId && activeEmployees.some((employee) => employee.id === line.employeeId));
   const matchedCustomer = customers.find((profile) => profile.phone === normalizedCustomerPhone);
   const memberPromoActive = Boolean(matchedCustomer) && isMemberPromoWeekday(previewDateTime);
-  const manualDiscount = discountMode === 'percent'
-    ? Math.min(subtotal, Math.round(subtotal * Math.min(discountInput, 100) / 100))
-    : Math.min(subtotal, Math.round(discountInput));
-  const memberDiscountAmount = memberPromoActive ? Math.round(subtotal * 10 / 100) : 0;
-  const appliedDiscountMode: DiscountMode = memberPromoActive && discountMode === 'nominal' && manualDiscount === 0
-    ? 'percent'
-    : discountMode;
-  const appliedDiscountValue = appliedDiscountMode === 'percent'
-    ? Math.min(100, (discountMode === 'percent' ? Math.min(discountInput, 100) : 0) + (memberPromoActive ? 10 : 0))
-    : memberPromoActive ? Math.min(subtotal, manualDiscount + memberDiscountAmount) : manualDiscount;
-  const discount = memberPromoActive
-    ? discountMode === 'percent'
-      ? Math.min(subtotal, Math.round(subtotal * appliedDiscountValue / 100))
-      : Math.min(subtotal, manualDiscount + memberDiscountAmount)
-    : manualDiscount;
-  const total = subtotal-discount;
+  const { itemDiscount, remaining, manualDiscount, memberDiscountAmount, appliedDiscountMode, appliedDiscountValue, discount, total } = calculateSaleDiscounts(cart, discountMode, discountInput, memberPromoActive);
   const received = method === 'Tunai' ? parseRupiahInput(receivedText) : total;
   const change = method === 'Tunai' ? Math.max(0, received-total) : 0;
   const pointsEarned = pointsFromAmount(total);
@@ -1077,7 +1064,7 @@ function Cashier() {
   const changeDiscountMode = (nextMode: DiscountMode) => {
     if (nextMode === discountMode) return;
     const nextValue = nextMode === 'percent'
-      ? subtotal > 0 ? Math.round((manualDiscount / subtotal) * 100 * 1_000_000) / 1_000_000 : 0
+      ? remaining > 0 ? Math.round((manualDiscount / remaining) * 100 * 1_000_000) / 1_000_000 : 0
       : manualDiscount;
     setDiscountText(String(nextValue));
     setDiscountMode(nextMode);
@@ -1114,8 +1101,8 @@ function Cashier() {
           discountValue: discountMode === 'percent' ? Math.min(discountInput, 100) : manualDiscount,
           amountReceived: received,
           serviceFlow,
-          items: cart.map(({ serviceId, name, unitPrice, quantity, employeeId }) => ({
-            serviceId, name, unitPrice, quantity, employeeId: employeeId as string,
+          items: cart.map(({ serviceId, name, unitPrice, quantity, employeeId, discount }) => ({
+            serviceId, name, unitPrice, quantity, discount: serviceDiscount({ unitPrice, quantity, discount }), employeeId: employeeId as string,
           })),
         },
       });
@@ -1252,12 +1239,15 @@ function Cashier() {
                   </select>
                 </label>
                 <div className="mt-2 flex items-center justify-between"><div className="flex items-center gap-1 rounded-lg border border-[#ecd8e2] bg-white p-0.5"><button aria-label="Kurangi jumlah" data-testid={`button-decrease-cart-item-${index}`} onClick={()=>setCart((items)=>items.map((item,i)=>i===index?{...item,quantity:item.quantity-1}:item).filter((item)=>item.quantity>0))} className="grid h-6 w-6 place-items-center rounded-md text-[#79586b] hover:bg-[#f8eaf1]"><Minus size={12}/></button><span className="w-5 text-center text-[11px] font-bold text-[#53374a]">{line.quantity}</span><button aria-label="Tambah jumlah" data-testid={`button-increase-cart-item-${index}`} onClick={()=>setCart((items)=>items.map((item,i)=>i===index?{...item,quantity:item.quantity+1}:item))} className="grid h-6 w-6 place-items-center rounded-md text-[#79586b] hover:bg-[#f8eaf1]"><Plus size={12}/></button></div><b className="text-[11px] text-[#55374a]">{money(line.unitPrice*line.quantity)}</b></div>
+                <ServiceDiscountInput line={line} index={index} onChange={discount=>setCart(items=>items.map((item,i)=>i===index?{...item,discount}:item))}/>
+                {serviceDiscount(line)>0&&<div className="mt-1 flex justify-between gap-2 text-[10px] text-primary"><span>Setelah diskon</span><b data-testid={`text-service-net-${index}`}>{money(line.unitPrice*line.quantity-serviceDiscount(line))}</b></div>}
                 {assignedEmployee&&<p className="mt-1 text-[9px] font-semibold text-[#967387]" data-testid={`text-assigned-employee-${index}`}>{displayStaffName(assignedEmployee.name)} · staf yang menangani</p>}
               </div>;
             })}</div> : <div className="cashier-empty-cart rounded-xl border border-dashed border-[#e9d2de] px-4 py-7 text-center" data-testid="empty-cart"><span className="mx-auto grid h-9 w-9 place-items-center rounded-full bg-[#f8eaf1] text-[#bc6d91]"><ShoppingBag size={16}/></span><p className="mt-2 text-[11px] font-bold text-[#674a5b]">Belum ada layanan</p><p className="mt-0.5 text-[10px] text-[#a58a99]">Pilih layanan di menu untuk mulai.</p></div>}
             <div className="flex items-center justify-between gap-2 border-t border-dashed border-[#ead7e1] pt-2 text-[10px] text-[#85697a]"><span>Subtotal</span><b data-testid="text-cart-subtotal">{money(subtotal)}</b></div>
               <div className="space-y-1.5">
-                <span className="block text-[10px] text-[#85697a]">Jenis diskon</span>
+                {itemDiscount>0&&<div className="flex justify-between gap-2 text-[10px] text-primary" data-testid="text-service-discount-total"><span>Total diskon layanan</span><b>− {money(itemDiscount)}</b></div>}
+                <span className="block text-[10px] text-[#85697a]">Diskon tambahan struk</span>
                 <div className="grid grid-cols-2 gap-1 rounded-lg bg-[#f8edf2] p-1">
                   {([['nominal', 'Nominal (Rp)'], ['percent', 'Persen (%)']] as const).map(([value, label]) => <button key={value} type="button" data-testid={`button-discount-mode-${value}`} aria-label={value==='nominal'?'Pilih diskon nominal dalam rupiah':'Pilih diskon persen'} aria-pressed={discountMode===value} onClick={()=>changeDiscountMode(value)} className={`rounded-md px-2 py-1.5 text-[9px] font-bold transition ${discountMode===value?'bg-white text-[#a9366b] shadow-sm':'text-[#85697a] hover:bg-white/70'}`}><span className="discount-mode-label">{label}</span><span className="discount-mode-short">{value==='nominal'?'Rp':'%'}</span></button>)}
                 </div>
