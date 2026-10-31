@@ -46,7 +46,7 @@ import PromoSettingsSection from '@/pos/pages/promo-settings-section';
 import NotificationsPage from '@/pos/pages/notifications-page';
 import QueuePage from '@/pos/pages/queue-page';
 import { Route, Switch, useLocation, Router as WouterRouter, Link } from '@/pos/router-compat';
-import { ArrowRight, ArrowUpRight, Banknote, CalendarDays, Camera, Check, ChevronDown, Clock3, Coins, CreditCard, Database, Download, Gift, History, LockKeyhole, MessageCircle, Minus, PanelLeftClose, PanelLeftOpen, Plus, Printer, QrCode, Search, ScanLine, Scissors, Settings, ShoppingBag, Tags, Trash2, UserRound, Users, WalletCards, X } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Banknote, CalendarDays, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, Clock3, Coins, CreditCard, Database, Download, Gift, History, LockKeyhole, MessageCircle, Minus, PanelLeftClose, PanelLeftOpen, Plus, Printer, QrCode, Search, ScanLine, Scissors, Settings, ShoppingBag, Tags, Trash2, UserRound, Users, WalletCards, X } from 'lucide-react';
 import { salonDetails, type SalonId, type Service } from '@/pos/lib/menu';
 import { displayStaffName } from '@/lib/utils';
 import { downloadReceiptPdf } from '@/pos/lib/receipt-pdf';
@@ -380,6 +380,16 @@ function AppFrame({ children, salon = 'beauty' }: { children: ReactNode; salon?:
             </Link>
           ))}
         </nav>
+        <button
+          type="button"
+          className="app-sidebar__edge"
+          onClick={() => setSidebarCollapsed((collapsed) => !collapsed)}
+          aria-label={sidebarCollapsed ? 'Perbesar menu' : 'Minimalkan menu'}
+          title={sidebarCollapsed ? 'Perbesar menu' : 'Minimalkan menu'}
+          data-testid="button-toggle-sidebar-edge"
+        >
+          {sidebarCollapsed ? <ChevronRight size={14}/> : <ChevronLeft size={14}/>}
+        </button>
       </aside>
       <main className={`app-page-content mx-auto max-w-[1500px] ${path==='/'?'cashier-main py-3 sm:py-4':'history-main px-4 py-6 sm:px-7 sm:py-8'}`}>{children}</main>
     </div>
