@@ -205,19 +205,45 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .app-shell { min-height: 100dvh; }
 .app-content { display: flex; align-items: stretch; min-height: calc(100dvh - 64px); }
 .app-sidebar {
-  position: sticky;
+  position: fixed;
+  z-index: 45;
   top: 64px;
+  bottom: 0;
+  left: 0;
   display: flex;
-  flex: 0 0 228px;
   flex-direction: column;
   width: 228px;
-  height: calc(100dvh - 64px);
+  max-width: 86vw;
   padding: 18px 12px 14px;
   overflow: hidden;
   border-right: 1px solid #eedde5;
   background: linear-gradient(180deg, #fffafb 0%, #fcf3f7 100%);
-  transition: flex-basis .2s ease, width .2s ease, padding .2s ease;
+  box-shadow: 12px 0 30px rgba(91, 37, 63, .14);
+  transform: translateX(0);
+  transition: transform .25s ease;
 }
+.sidebar-is-collapsed .app-sidebar { transform: translateX(-102%); box-shadow: none; pointer-events: none; }
+.app-sidebar__launch {
+  position: fixed;
+  z-index: 35;
+  top: 50%;
+  left: 0;
+  display: grid;
+  width: 24px;
+  height: 46px;
+  place-items: center;
+  transform: translateY(-50%);
+  border: 1px solid #eedde5;
+  border-left: 0;
+  border-radius: 0 10px 10px 0;
+  background: #fff;
+  color: #8e6078;
+  cursor: pointer;
+  box-shadow: 2px 0 10px rgba(91, 37, 63, .08);
+  transition: background .15s ease, color .15s ease;
+}
+.app-sidebar__launch:hover { background: #f8eaf1; color: #a52f67; }
+.app-sidebar__launch:focus-visible { outline: 2px solid #bd3c76; outline-offset: 2px; }
 .app-sidebar__heading { display: flex; align-items: center; justify-content: space-between; min-height: 34px; margin: 0 4px 12px; }
 .app-sidebar__section-label { color: #a47c90; font-size: 9px; font-weight: 800; letter-spacing: .16em; }
 .app-sidebar__toggle {
