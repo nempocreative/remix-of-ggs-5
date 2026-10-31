@@ -759,6 +759,15 @@ export type Database = {
     }
     Functions: {
       app_sql: { Args: { params?: Json; q: string }; Returns: Json }
+      pos_revise_sale: {
+        Args: {
+          p_id: string
+          p_items: Json
+          p_sale: Json
+          p_salon_scope: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
