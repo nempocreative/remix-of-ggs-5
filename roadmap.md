@@ -1,6 +1,6 @@
 # Remix setup
 
-- [ ] Investigate and address the blank page on the S12 Hancdon Android browser.
+- [ ] Investigate and address the blank page on the S12 Hancdon Android browser — awaiting the failing URL and browser version; current remix has no published URL.
 
 - [x] Configure and verify the separate Oca and Bela cashier logins with the supplied PIN.
 
