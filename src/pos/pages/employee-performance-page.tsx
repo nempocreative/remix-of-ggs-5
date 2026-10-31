@@ -1,3 +1,4 @@
+import { downloadTablePdf } from '@/pos/lib/table-pdf';
 import { useMemo, useState, type FormEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -9,7 +10,7 @@ import {
   useUpdateEmployee,
   type Employee,
 } from '@/lib/api-client';
-import { AlertCircle, ArrowDownWideNarrow, ArrowUpRight, BadgePercent, BarChart3, CalendarDays, ChevronDown, CircleDollarSign, Eye, EyeOff, FileWarning, Plus, RefreshCw, Search, Users } from 'lucide-react';
+import { AlertCircle, ArrowDownWideNarrow, ArrowUpRight, BadgePercent, BarChart3, CalendarDays, ChevronDown, CircleDollarSign, Download, Eye, EyeOff, FileWarning, Plus, RefreshCw, Search, Users } from 'lucide-react';
 import { Link } from '@/pos/router-compat';
 import type { SalonId } from '@/pos/lib/menu';
 import { displayStaffName } from '@/lib/utils';
@@ -298,6 +299,22 @@ export default function EmployeePerformancePage({ salon }: Props) {
   const isLoading = employeesQuery.isLoading || salesQuery.isLoading;
   const isError = employeesQuery.isError || salesQuery.isError;
   const salonName = salon === 'beauty' ? 'GGS Beauty' : 'GGS Hair Studio';
+  const downloadPerformancePdf = () => {
+    const rows: (string | number)[][] = [];
+    rankedEmployees.forEach(({ employee, metric }, index) => {
+      rows.push([index + 1, displayStaffName(employee.name), employee.active ? 'Aktif' : 'Nonaktif', metric.sales, metric.services, metric.base, metric.commission]);
+      [...metric.serviceBreakdown.values()].forEach((service) => rows.push(['', `   - ${service.name}`, '', '', service.quantity, service.base, service.commission]));
+    });
+    rows.push(['TOTAL', '', '', totalTransactions, totalServices, totalBase, totalEarned]);
+    void downloadTablePdf({
+      filename: `kinerja-staf-${salon === 'beauty' ? 'ggs-beauty' : 'ggs-hair-studio'}-${activeRange.start ?? 'awal'}-${activeRange.end ?? todayKey}.pdf`,
+      title: `Laporan Kinerja Staf · ${salonName}`,
+      subtitle: `Periode: ${selectedPeriodLabel}`,
+      headers: ['No', 'Staf / layanan', 'Status', 'Transaksi', 'Layanan', 'Dasar komisi (Rp)', 'Komisi (Rp)'],
+      rows,
+      summary: [['Total komisi', money(totalEarned)], ['Dasar komisi', money(totalBase)], ['Layanan', String(totalServices)], ['Staf aktif', String(activeCount)]],
+    });
+  };
 
   return <main className="employee-page fade-up ggs-performance">
     <div className="gp-shell">
@@ -314,6 +331,7 @@ export default function EmployeePerformancePage({ salon }: Props) {
            <div className="gp-updated"><Users size={15}/><span><strong>{activeCount} staf aktif</strong><br/>{employees.length} staf terdaftar</span></div>
            <div className="gp-sync-status">
              <span aria-live="polite">{formatUpdatedTime(latestDataUpdatedAt)}</span>
+             <button type="button" className="gp-refresh-button" onClick={downloadPerformancePdf} disabled={employeesQuery.isLoading || salesQuery.isLoading} data-testid="button-download-performance-pdf"><Download size={13}/><span>Unduh PDF</span></button>
              <button type="button" className="gp-refresh-button" onClick={refreshPerformanceData} disabled={isRefreshing} aria-label="Perbarui data kinerja" data-testid="button-refresh-performance-data">
                <RefreshCw size={13} className={isRefreshing ? 'is-spinning' : ''}/><span>{isRefreshing ? 'Memuat' : 'Perbarui'}</span>
              </button>

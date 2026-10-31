@@ -50,6 +50,7 @@ import { ArrowRight, ArrowUpRight, Banknote, CalendarDays, Camera, Check, Chevro
 import { salonDetails, type SalonId, type Service } from '@/pos/lib/menu';
 import { displayStaffName } from '@/lib/utils';
 import { downloadReceiptPdf } from '@/pos/lib/receipt-pdf';
+import { downloadTablePdf } from '@/pos/lib/table-pdf';
 import { downloadMemberCardPdf } from '@/pos/lib/member-card-pdf';
 import { defaultReceiptCopy } from '@/pos/lib/receipt-copy';
 import { calculateSaleDiscounts, serviceDiscount } from '@/lib/sale-discounts';
@@ -1359,16 +1360,18 @@ function downloadHistoryCsv(salon: SalonId, rows: Sale[]) {
     sale.pointsEarned ?? pointsFromAmount(sale.total),
     sale.pointsBalance ?? '',
   ]);
-  const csv = `\uFEFF${[headers, ...dataRows].map((row) => row.map(historyCsvCell).join(',')).join('\r\n')}`;
-  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-  const link = document.createElement('a');
   const salonSlug = salon === 'beauty' ? 'ggs-beauty' : 'ggs-hair-studio';
-  link.href = url;
-  link.download = `riwayat-${salonSlug}-${businessDateKey(new Date())}.csv`;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  const pdfHeaders = [headers[0], headers[1], headers[3], headers[5], headers[6], headers[7], headers[9], headers[10], headers[11]];
+  const pdfRows = dataRows.map((row) => [row[0], row[1], row[3], row[5], row[6], row[7], row[9], row[10], row[11]]);
+  const total = rows.reduce((sum, sale) => sum + sale.total, 0);
+  void downloadTablePdf({
+    filename: `riwayat-${salonSlug}-${businessDateKey(new Date())}.pdf`,
+    title: `Riwayat Transaksi · ${salonDetails[salon].name}`,
+    subtitle: 'Semua transaksi tercatat',
+    headers: pdfHeaders,
+    rows: [...pdfRows, ['TOTAL', '', '', '', '', rows.reduce((sum, sale) => sum + sale.subtotal, 0), rows.reduce((sum, sale) => sum + sale.discount, 0), total, '']],
+    summary: [['Jumlah transaksi', String(rows.length)], ['Total pendapatan', money(total)]],
+  });
 }
 
 function HistoryPage() {
@@ -1436,7 +1439,7 @@ function HistoryPage() {
             data-testid="button-download-all-history"
             className="inline-flex min-h-[40px] items-center justify-center gap-2 rounded-xl border border-[#ecd8e2] bg-white px-3 text-xs font-bold text-[#a83e70] transition hover:bg-[#fdf3f7] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <Download size={14}/> Unduh semua CSV
+            <Download size={14}/> Unduh semua PDF
           </button>
         </div>
       </div>

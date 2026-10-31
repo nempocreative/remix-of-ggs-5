@@ -1,3 +1,4 @@
+import { downloadTablePdf } from '@/pos/lib/table-pdf';
 import { useMemo, useState } from 'react';
 import { getFinanceIncome, getGetFinanceReportQueryKey, listExpenses, useGetFinanceReport } from '@/lib/api-client';
 import { AlertCircle, ArrowDownRight, ArrowUpRight, Banknote, CalendarDays, ChevronDown, CircleHelp, Download, RefreshCw, Scissors, WalletCards } from 'lucide-react';
@@ -29,21 +30,12 @@ const showDate = (value: string, options: Intl.DateTimeFormatOptions = { day: 'n
 const errorMessage = (error: unknown) => error instanceof Error
   ? error.message
   : 'Laporan belum dapat dimuat. Periksa koneksi lalu coba lagi.';
-const csvCell = (value: string | number) => {
-  const raw = String(value);
-  const safe = typeof value === 'string' && /^[\t\r ]*[=+\-@]/.test(value) ? `'${raw}` : raw;
-  return `"${safe.replaceAll('"', '""')}"`;
-};
+const pdfTitles: Record<string, string> = { 'arus-kas': 'Laporan Arus Kas', pemasukan: 'Laporan Pemasukan', pengeluaran: 'Laporan Pengeluaran' };
 const downloadCsv = (filename: string, headers: string[], rows: (string | number)[][]) => {
-  const csv = `\uFEFF${[headers, ...rows].map((row) => row.map(csvCell).join(',')).join('\r\n')}`;
-  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  const [, kind, salonSlug, range] = filename.match(/^(arus-kas|pemasukan|pengeluaran)-(ggs-beauty|ggs-hair-studio)-(.+)\.pdf$/) ?? [];
+  const salonName = salonSlug === 'ggs-hair-studio' ? 'GGS Hair Studio' : 'GGS Beauty';
+  const [from, to] = [range?.slice(0, 10), range?.slice(11)];
+  return downloadTablePdf({ filename, title: `${pdfTitles[kind] ?? 'Laporan'} · ${salonName}`, subtitle: `Periode ${from} s.d. ${to}`, headers, rows });
 };
 
 export default function FinancePage({ salon }: Props) {
@@ -76,7 +68,7 @@ export default function FinancePage({ salon }: Props) {
   const daily = report?.daily ?? [];
   const maxDaily = Math.max(1, ...daily.flatMap((item) => [item.revenue, item.expenses]));
   const chartIntervals = maxDaily < 3 ? Math.ceil(maxDaily) : 3;
-  const exportCashFlow = () => {
+  const exportCashFlow = async () => {
     if (!report || invalidRange) return;
     setExportFeedback(null);
     try {
@@ -104,7 +96,7 @@ export default function FinancePage({ salon }: Props) {
         report.transferExpenses,
         report.unclassifiedExpenses,
       ]);
-      downloadCsv(`arus-kas-${salonFileName}-${from}-${to}.csv`, [
+      await downloadCsv(`arus-kas-${salonFileName}-${from}-${to}.pdf`, [
         'Tanggal',
         'Dana masuk',
         'Dana keluar',
@@ -116,7 +108,7 @@ export default function FinancePage({ salon }: Props) {
         'Keluar transfer / QRIS',
         'Keluar belum diklasifikasi',
       ], rows);
-      setExportFeedback({ type: 'success', message: 'File arus kas berhasil diunduh.' });
+      setExportFeedback({ type: 'success', message: 'PDF arus kas berhasil diunduh.' });
     } catch (error) {
       setExportFeedback({ type: 'error', message: errorMessage(error) });
     }
@@ -136,7 +128,7 @@ export default function FinancePage({ salon }: Props) {
         item.revenue,
       ]);
       rows.push(['TOTAL PERIODE', '', '', '', '', income.totalRevenue]);
-      downloadCsv(`pemasukan-${salonFileName}-${from}-${to}.csv`, [
+      await downloadCsv(`pemasukan-${salonFileName}-${from}-${to}.pdf`, [
         'Tanggal',
         'Nomor transaksi',
         'Metode pembayaran',
@@ -144,7 +136,7 @@ export default function FinancePage({ salon }: Props) {
         'Diskon',
         'Pemasukan bersih',
       ], rows);
-      setExportFeedback({ type: 'success', message: `File pemasukan berhasil diunduh (${income.count} transaksi).` });
+      setExportFeedback({ type: 'success', message: `PDF pemasukan berhasil diunduh (${income.count} transaksi).` });
     } catch (error) {
       setExportFeedback({ type: 'error', message: errorMessage(error) });
     } finally {
@@ -167,7 +159,7 @@ export default function FinancePage({ salon }: Props) {
         item.id,
       ]);
       rows.push(['TOTAL PERIODE', '', '', result.totalAmount, '', '', '']);
-      downloadCsv(`pengeluaran-${salonFileName}-${from}-${to}.csv`, [
+      await downloadCsv(`pengeluaran-${salonFileName}-${from}-${to}.pdf`, [
         'Tanggal',
         'Kategori',
         'Rincian',
@@ -250,9 +242,9 @@ export default function FinancePage({ salon }: Props) {
           <label className="fi-date">Sampai tanggal<input type="date" aria-label="Tanggal akhir laporan" value={to} min={from} max={today} onChange={(event) => changeDate('to', event.target.value)} data-testid="input-finance-to"/></label>
         </div>
         <div className="fi-export-actions" aria-label="Unduh laporan">
-          <button type="button" className="fi-download" onClick={exportCashFlow} disabled={!report || invalidRange || reportQuery.isLoading || reportQuery.isError} data-testid="button-export-cashflow"><Download size={12}/> Unduh arus kas</button>
-          <button type="button" className="fi-download" onClick={() => void exportIncome()} disabled={!report || invalidRange || reportQuery.isLoading || reportQuery.isError || incomeDownloadBusy} data-testid="button-export-income"><Download size={12}/> {incomeDownloadBusy ? 'Menyiapkan…' : 'Unduh pemasukan'}</button>
-          <button type="button" className="fi-download" onClick={() => void exportExpenses()} disabled={!report || invalidRange || reportQuery.isLoading || reportQuery.isError || expenseDownloadBusy} data-testid="button-export-expenses"><Download size={12}/> {expenseDownloadBusy ? 'Menyiapkan…' : 'Unduh pengeluaran'}</button>
+          <button type="button" className="fi-download" onClick={exportCashFlow} disabled={!report || invalidRange || reportQuery.isLoading || reportQuery.isError} data-testid="button-export-cashflow"><Download size={12}/> Unduh arus kas PDF</button>
+          <button type="button" className="fi-download" onClick={() => void exportIncome()} disabled={!report || invalidRange || reportQuery.isLoading || reportQuery.isError || incomeDownloadBusy} data-testid="button-export-income"><Download size={12}/> {incomeDownloadBusy ? 'Menyiapkan…' : 'Unduh pemasukan PDF'}</button>
+          <button type="button" className="fi-download" onClick={() => void exportExpenses()} disabled={!report || invalidRange || reportQuery.isLoading || reportQuery.isError || expenseDownloadBusy} data-testid="button-export-expenses"><Download size={12}/> {expenseDownloadBusy ? 'Menyiapkan…' : 'Unduh pengeluaran PDF'}</button>
         </div>
       </div>
     </section>
