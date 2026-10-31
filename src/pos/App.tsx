@@ -55,6 +55,9 @@ import { downloadMemberCardPdf } from '@/pos/lib/member-card-pdf';
 import { defaultReceiptCopy } from '@/pos/lib/receipt-copy';
 import { calculateSaleDiscounts, serviceDiscount } from '@/lib/sale-discounts';
 import { ServiceDiscountInput } from '@/pos/components/service-discount-input';
+import { SaleRevisionDialog } from '@/pos/components/sale-revision-dialog';
+import { Button } from '@/components/ui/button';
+import { Pencil } from 'lucide-react';
 
 type CartLine = { serviceId: string; name: string; unitPrice: number; quantity: number; discount?: number; discountType?: 'nominal' | 'percent'; employeeId?: string | null; employeeName?: string | null; commissionPercent?: number; commissionBase?: number; commissionAmount?: number };
 type DiscountMode = 'nominal' | 'percent';
@@ -2136,6 +2139,7 @@ function HistoryRow({ sale, initialOpen = false }: { sale: Sale; initialOpen?: b
   const [open, setOpen] = useState(initialOpen);
   const [receipt, setReceipt] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
+  const [showRevision, setShowRevision] = useState(false);
   const itemCount = sale.items.reduce((count, item) => count + item.quantity, 0);
 
   return <article className={`px-4 py-4 transition-colors sm:px-5 ${open?'bg-[#fffafb]':'hover:bg-[#fffafb]'}`} data-testid={`row-sale-${sale.id}`}>
@@ -2159,6 +2163,7 @@ function HistoryRow({ sale, initialOpen = false }: { sale: Sale; initialOpen?: b
           <ChevronDown size={16} className={`text-[#aa8496] transition-transform ${open?'rotate-180':''}`}/>
         </span>
       </button>
+      <Button type="button" variant="outline" size="icon" className="shrink-0 text-primary" onClick={() => setShowRevision(true)} aria-label={`Revisi transaksi ${sale.invoiceNumber}`} title="Revisi transaksi" data-testid={`button-revise-sale-${sale.id}`}><Pencil/></Button>
       <button type="button" onClick={()=>setShowDelete(true)} aria-label={`Hapus transaksi ${sale.invoiceNumber}`} title="Hapus transaksi" className="flex h-9 shrink-0 items-center justify-center gap-1 rounded-lg border border-[#f0d6d3] px-2 text-[9px] font-bold text-[#a9433c] transition hover:bg-[#fff0f0] hover:text-[#923832] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ad3d52] sm:px-2.5 sm:text-[10px]"><Trash2 size={13}/><span>Hapus</span></button>
     </div>
     {open&&<div id={`sale-details-${sale.id}`} className="mt-4 rounded-[16px] border border-[#f0e2e9] bg-white p-4 sm:ml-[52px] sm:p-5">
@@ -2193,6 +2198,7 @@ function HistoryRow({ sale, initialOpen = false }: { sale: Sale; initialOpen?: b
       </div>
     </div>}
     {receipt && <Receipt sale={sale} onClose={() => setReceipt(false)}/>}
+    {showRevision && <SaleRevisionDialog sale={sale} onClose={() => setShowRevision(false)}/>}
     {showDelete && <DeleteConfirmation
       title={`Hapus transaksi ${sale.invoiceNumber}?`}
       description="Transaksi dan rincian layanannya akan dihapus permanen. Poin, saldo, dan ringkasan pelanggan terkait akan dihitung ulang."

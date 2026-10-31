@@ -1,5 +1,7 @@
 # Remix setup
 
+- [ ] Add transaction revisions from history and staff performance; recalculate receipts, points and commissions, protect settled commissions, and verify authenticated editing.
+
 - [x] Add and verify manual discounts per service, including saved transactions, receipts, history and backup; 14 tests passed and authenticated checkout verified.
 
 - [ ] Verify S12 Hancdon Android access after publication — older-browser syntax target applied and tablet-size login tested; physical device and published deployment remain unverified.
