@@ -17,6 +17,14 @@ describe('manual service discounts', () => {
   it('retains member promotion on the amount remaining after service discounts', () => {
     expect(calculateSaleDiscounts(items, 'nominal', 0, true)).toMatchObject({ discount: 33000, total: 117000 });
   });
+  it('applies a percent discount to its own service only', () => {
+    const mixed = [{ unitPrice: 100000, quantity: 1, discount: 10, discountType: 'percent' as const }, { unitPrice: 50000, quantity: 1, discount: 5000 }];
+    expect(mixed.map(serviceDiscount)).toEqual([10000, 5000]);
+    expect(calculateSaleDiscounts(mixed, 'nominal', 0, false)).toMatchObject({ itemDiscount: 15000, total: 135000 });
+  });
+  it('caps a percent line discount at 100% of its service', () => {
+    expect(serviceDiscount({ unitPrice: 80000, quantity: 2, discount: 150, discountType: 'percent' })).toBe(160000);
+  });
   it('keeps old receipts with no line discounts unchanged', () => {
     expect(calculateSaleDiscounts([{ unitPrice: 150000, quantity: 1 }], 'percent', 10, true)).toMatchObject({ discount: 30000, total: 120000, appliedDiscountMode: 'percent', appliedDiscountValue: 20 });
   });
@@ -24,5 +32,8 @@ describe('manual service discounts', () => {
     const input = { salon: 'beauty', id: '11111111-1111-4111-8111-111111111111', customerName: 'Test', customerPhone: '08000000000', cashierName: 'Test', paymentMethod: 'Tunai', discountMode: 'nominal', discountValue: 0, amountReceived: 130000, items: items.map(item => ({ ...item, serviceId: 'service', name: 'Service', employeeId: 'staff' })) };
     expect(CreateSaleBody.parse(input).items.map(item => item.discount)).toEqual([15000, 5000]);
     expect(CreateSaleBody.safeParse({ ...input, items: [{ ...input.items[0], discount: -1 }] }).success).toBe(false);
+    const percentInput = { ...input, items: [{ ...input.items[0], discount: 10, discountType: 'percent' }] };
+    expect(CreateSaleBody.parse(percentInput).items[0].discountType).toBe('percent');
+    expect(CreateSaleBody.safeParse({ ...input, items: [{ ...input.items[0], discountType: 'persen' }] }).success).toBe(false);
   });
 });

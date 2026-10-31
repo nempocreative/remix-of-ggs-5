@@ -17,7 +17,7 @@ import { db, customersTable, queueBookingsTable, saleItemsTable, salonCustomersT
 import { getCashierSessionUser, requireCashierSession } from "../lib/cashier-session";
 import { rebuildSalonCustomerSummary } from "../lib/points-ledger";
 
-import { calculateSaleDiscounts } from "@/lib/sale-discounts";
+import { calculateSaleDiscounts, serviceDiscount } from "@/lib/sale-discounts";
 
 const router: IRouter = Router();
 const RUPIAH_PER_POINT = 1_000;
