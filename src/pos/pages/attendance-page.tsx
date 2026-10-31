@@ -287,7 +287,7 @@ export default function AttendancePage({ salon }: Props) {
     setAdminError('');
     try {
       if (!isVerificationAction(action) || !adminSessionReady) {
-        await loginCashier({ id: adminId.trim(), password: adminPassword });
+        await loginCashier({ id: adminId.trim().toLowerCase(), pin: adminPassword.trim() });
         setAdminSessionReady(true);
       }
       await performAdminAction(action, record);
