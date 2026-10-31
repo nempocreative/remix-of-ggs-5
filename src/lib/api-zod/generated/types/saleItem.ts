@@ -8,6 +8,7 @@
 
 export interface SaleItem {
   discount?: number;
+  discountType?: 'nominal' | 'percent';
   serviceId: string;
   name: string;
   /** @minimum 0 */

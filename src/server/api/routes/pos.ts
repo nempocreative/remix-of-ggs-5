@@ -17,7 +17,7 @@ import { db, customersTable, queueBookingsTable, saleItemsTable, salonCustomersT
 import { getCashierSessionUser, requireCashierSession } from "../lib/cashier-session";
 import { rebuildSalonCustomerSummary } from "../lib/points-ledger";
 
-import { calculateSaleDiscounts } from "@/lib/sale-discounts";
+import { calculateSaleDiscounts, serviceDiscount } from "@/lib/sale-discounts";
 
 const router: IRouter = Router();
 const RUPIAH_PER_POINT = 1_000;
@@ -101,9 +101,10 @@ function toSaleResponse(row: SaleRow, items: SaleItemRow[]) {
     discountValue: row.discountValue,
     items: items
       .sort((a, b) => a.lineIndex - b.lineIndex)
-      .map(({ serviceId, name, unitPrice, quantity, employeeId, employeeName, commissionPercent, commissionBase, commissionAmount, discount }) => ({
+      .map(({ serviceId, name, unitPrice, quantity, employeeId, employeeName, commissionPercent, commissionBase, commissionAmount, discount, discountType }) => ({
         serviceId,
         discount,
+        discountType: discountType as "nominal" | "percent",
         name,
         unitPrice,
         quantity,
@@ -302,7 +303,7 @@ router.post("/sales", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Diskon tidak boleh melebihi 100%." });
     return;
   }
-  if (input.items.some(item => (item.discount ?? 0) > item.unitPrice * item.quantity)) {
+  if (input.items.some(item => item.discountType === "percent" ? (item.discount ?? 0) > 100 : (item.discount ?? 0) > item.unitPrice * item.quantity)) {
     res.status(400).json({ error: "Diskon layanan tidak boleh melebihi harga layanan." });
     return;
   }
@@ -362,7 +363,7 @@ router.post("/sales", async (req, res): Promise<void> => {
     return;
   }
   const employeeById = new Map(employees.map((employee) => [employee.id, employee]));
-  const commissionBases = allocateCommissionBases(input.items.map(item => ({ unitPrice: item.unitPrice * item.quantity - (item.discount ?? 0), quantity: 1 })), total, calculated.remaining);
+  const commissionBases = allocateCommissionBases(input.items.map(item => ({ unitPrice: item.unitPrice * item.quantity - serviceDiscount(item), quantity: 1 })), total, calculated.remaining);
 
   const created = await db.transaction(async (tx) => {
     const [inserted] = await tx
@@ -421,6 +422,7 @@ router.post("/sales", async (req, res): Promise<void> => {
           unitPrice: item.unitPrice,
           quantity: item.quantity,
           discount: item.discount ?? 0,
+          discountType: item.discountType ?? "nominal",
           employeeId: employee.id,
           employeeName: employee.name,
           commissionPercent,
@@ -555,6 +557,7 @@ router.post("/sales/import", async (req, res): Promise<void> => {
             unitPrice: item.unitPrice,
             quantity: item.quantity,
           discount: item.discount ?? 0,
+          discountType: item.discountType ?? "nominal",
             employeeId: null,
             employeeName: null,
             commissionPercent: 0,
