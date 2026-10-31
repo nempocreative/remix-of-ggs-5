@@ -1,8 +1,15 @@
-export type DiscountLine = { unitPrice: number; quantity: number; discount?: number };
+export type ServiceDiscountType = 'nominal' | 'percent';
+
+export type DiscountLine = { unitPrice: number; quantity: number; discount?: number; discountType?: ServiceDiscountType };
 
 export function serviceDiscount(line: DiscountLine) {
-  const value = line.discount ?? 0;
-  return Math.min(line.unitPrice * line.quantity, Math.max(0, Math.round(Number.isFinite(value) ? value : 0)));
+  const gross = line.unitPrice * line.quantity;
+  const raw = line.discount ?? 0;
+  const value = Math.max(0, Number.isFinite(raw) ? raw : 0);
+  const amount = line.discountType === 'percent'
+    ? Math.round(gross * Math.min(value, 100) / 100)
+    : Math.round(value);
+  return Math.min(gross, Math.max(0, amount));
 }
 
 export function calculateSaleDiscounts(items: DiscountLine[], mode: 'nominal' | 'percent', value: number, member: boolean) {
