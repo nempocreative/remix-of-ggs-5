@@ -3,6 +3,7 @@ import { requireCashierSalonScope, requireCashierSession } from "../lib/cashier-
 import authRouter from "./auth";
 import attendanceRouter from "./attendance";
 import backupRouter from "./backup";
+import commissionsRouter from "./commissions";
 import employeesRouter from "./employees";
 import expensesRouter from "./expenses";
 import financeRouter from "./finance";
@@ -23,6 +24,7 @@ router.use(requireCashierSession);
 router.use(requireCashierSalonScope);
 router.use(attendanceRouter);
 router.use(backupRouter);
+router.use(commissionsRouter);
 router.use(employeesRouter);
 router.use(expensesRouter);
 router.use(financeRouter);
