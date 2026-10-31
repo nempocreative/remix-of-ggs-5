@@ -319,6 +319,7 @@ export type Database = {
           commission_amount: number
           commission_base: number
           commission_percent: number
+          discount: number
           employee_id: string | null
           employee_name: string | null
           id: string
@@ -333,6 +334,7 @@ export type Database = {
           commission_amount?: number
           commission_base?: number
           commission_percent?: number
+          discount?: number
           employee_id?: string | null
           employee_name?: string | null
           id?: string
@@ -347,6 +349,7 @@ export type Database = {
           commission_amount?: number
           commission_base?: number
           commission_percent?: number
+          discount?: number
           employee_id?: string | null
           employee_name?: string | null
           id?: string
