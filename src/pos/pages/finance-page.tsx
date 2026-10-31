@@ -30,12 +30,26 @@ const showDate = (value: string, options: Intl.DateTimeFormatOptions = { day: 'n
 const errorMessage = (error: unknown) => error instanceof Error
   ? error.message
   : 'Laporan belum dapat dimuat. Periksa koneksi lalu coba lagi.';
+const idDate = (value?: string) => value ? new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${value}T00:00:00Z`)) : '-';
 const pdfTitles: Record<string, string> = { 'arus-kas': 'Laporan Arus Kas', pemasukan: 'Laporan Pemasukan', pengeluaran: 'Laporan Pengeluaran' };
 const downloadCsv = (filename: string, headers: string[], rows: (string | number)[][]) => {
   const [, kind, salonSlug, range] = filename.match(/^(arus-kas|pemasukan|pengeluaran)-(ggs-beauty|ggs-hair-studio)-(.+)\.pdf$/) ?? [];
   const salonName = salonSlug === 'ggs-hair-studio' ? 'GGS Hair Studio' : 'GGS Beauty';
   const [from, to] = [range?.slice(0, 10), range?.slice(11)];
-  return downloadTablePdf({ filename, title: `${pdfTitles[kind] ?? 'Laporan'} · ${salonName}`, subtitle: `Periode ${from} s.d. ${to}`, headers, rows });
+  const hidden = new Set(headers.map((header, index) => ['Waktu dicatat', 'ID catatan'].includes(header) ? index : -1));
+  const keep = (row: (string | number)[]) => row.filter((_, index) => !hidden.has(index));
+  const totalRow = rows.find((row) => String(row[0]).startsWith('TOTAL')) ?? [];
+  let body = rows.filter((row) => row !== totalRow && (kind !== 'arus-kas' || row.slice(1).some((value) => value !== 0)));
+  body = body.map((row) => row.map((value, index) => index === 0 && typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) ? idDate(value) : value));
+  const pdfHeaders = keep(headers) as string[];
+  const tableRows = body.length ? body.map(keep) : [['Tidak ada data pada periode ini', ...pdfHeaders.slice(1).map(() => '')]];
+  const rp = (value: unknown) => `Rp ${Number(value || 0).toLocaleString('id-ID')}`;
+  const summary: [string, string][] = kind === 'arus-kas'
+    ? [['Dana masuk', rp(totalRow[1])], ['Dana keluar', rp(totalRow[2])], ['Arus kas bersih', rp(totalRow[3])], ['Hari ada transaksi', String(body.length)]]
+    : kind === 'pemasukan'
+      ? [['Jumlah transaksi', String(body.length)], ['Pemasukan bersih', rp(totalRow[5])]]
+      : [['Jumlah pengeluaran', String(body.length)], ['Total pengeluaran', rp(totalRow[3])]];
+  return downloadTablePdf({ filename, title: `${pdfTitles[kind] ?? 'Laporan'} · ${salonName}`, subtitle: `Periode ${idDate(from)} s.d. ${idDate(to)}`, headers: pdfHeaders, rows: [...tableRows, keep(totalRow)], summary });
 };
 
 export default function FinancePage({ salon }: Props) {
