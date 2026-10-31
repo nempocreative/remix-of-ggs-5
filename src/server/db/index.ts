@@ -32,7 +32,8 @@ async function run(sql: string, params: unknown[]) {
 const base: DB = drizzle(
   async (sql, params, method) => {
     const rows = await run(sql, params);
-    return { rows: method === "get" ? (rows[0] as any) : rows };
+    void method;
+    return { rows };
   },
   { schema },
 );
