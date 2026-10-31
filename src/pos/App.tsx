@@ -289,7 +289,7 @@ function AppFrame({ children, salon = 'beauty' }: { children: ReactNode; salon?:
       const compact = window.matchMedia('(max-width: 1100px)').matches;
       const key = compact ? 'ggs-pos-sidebar-collapsed-compact' : 'ggs-pos-sidebar-collapsed';
       const saved = localStorage.getItem(key);
-      return saved === null ? compact : saved === 'true';
+      return saved === null ? true : saved === 'true';
     },
   );
   useEffect(() => {
@@ -298,7 +298,7 @@ function AppFrame({ children, salon = 'beauty' }: { children: ReactNode; salon?:
       setIsCompactViewport(event.matches);
       const key = event.matches ? 'ggs-pos-sidebar-collapsed-compact' : 'ggs-pos-sidebar-collapsed';
       const saved = localStorage.getItem(key);
-      setSidebarCollapsed(saved === null ? event.matches : saved === 'true');
+      setSidebarCollapsed(saved === null ? true : saved === 'true');
     };
     media.addEventListener('change', handleViewportChange);
     return () => media.removeEventListener('change', handleViewportChange);
@@ -349,6 +349,16 @@ function AppFrame({ children, salon = 'beauty' }: { children: ReactNode; salon?:
         onClick={() => setSidebarCollapsed(true)}
         data-testid="button-close-sidebar"
       />}
+      {sidebarCollapsed && <button
+        type="button"
+        className="app-sidebar__launch"
+        onClick={() => setSidebarCollapsed(false)}
+        aria-label="Buka menu"
+        title="Buka menu"
+        data-testid="button-open-sidebar"
+      >
+        <ChevronRight size={14}/>
+      </button>}
       <aside className="app-sidebar" aria-label="Menu utama">
         <div className="app-sidebar__heading">
           <span className="app-sidebar__section-label">MENU</span>
@@ -372,7 +382,7 @@ function AppFrame({ children, salon = 'beauty' }: { children: ReactNode; salon?:
               data-testid={testId}
               aria-label={label}
               aria-current={path === href ? 'page' : undefined}
-              title={sidebarCollapsed ? label : undefined}
+              onClick={() => setSidebarCollapsed(true)}
               className={`app-sidebar__link${path === href ? ' is-active' : ''}`}
             >
               <Icon size={18} aria-hidden="true"/>
@@ -383,12 +393,12 @@ function AppFrame({ children, salon = 'beauty' }: { children: ReactNode; salon?:
         <button
           type="button"
           className="app-sidebar__edge"
-          onClick={() => setSidebarCollapsed((collapsed) => !collapsed)}
-          aria-label={sidebarCollapsed ? 'Perbesar menu' : 'Minimalkan menu'}
-          title={sidebarCollapsed ? 'Perbesar menu' : 'Minimalkan menu'}
+          onClick={() => setSidebarCollapsed(true)}
+          aria-label="Tutup menu"
+          title="Tutup menu"
           data-testid="button-toggle-sidebar-edge"
         >
-          {sidebarCollapsed ? <ChevronRight size={14}/> : <ChevronLeft size={14}/>}
+          <ChevronLeft size={14}/>
         </button>
       </aside>
       <main className={`app-page-content mx-auto max-w-[1500px] ${path==='/'?'cashier-main py-3 sm:py-4':'history-main px-4 py-6 sm:px-7 sm:py-8'}`}>{children}</main>
