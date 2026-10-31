@@ -1,2 +1,0 @@
-ALTER TABLE public.pos_sale_items ADD COLUMN IF NOT EXISTS discount integer NOT NULL DEFAULT 0;
-ALTER TABLE public.pos_sale_items ADD CONSTRAINT pos_sale_items_discount_bounds CHECK (discount >= 0 AND discount <= unit_price::bigint * quantity);
