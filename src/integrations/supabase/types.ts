@@ -131,6 +131,45 @@ export type Database = {
         }
         Relationships: []
       }
+      pos_commission_settlements: {
+        Row: {
+          action: string
+          amount: number
+          created_at: string
+          created_by: string | null
+          employee_id: string
+          employee_name: string
+          id: string
+          period_end: string
+          period_start: string | null
+          salon: string
+        }
+        Insert: {
+          action: string
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          employee_id: string
+          employee_name: string
+          id?: string
+          period_end: string
+          period_start?: string | null
+          salon: string
+        }
+        Update: {
+          action?: string
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string
+          employee_name?: string
+          id?: string
+          period_end?: string
+          period_start?: string | null
+          salon?: string
+        }
+        Relationships: []
+      }
       pos_customers: {
         Row: {
           created_at: string
