@@ -34,6 +34,7 @@ export function getCashierAccounts(): CashierAccount[] {
   if (ocaPassword) addAccount({ id: "oca", name: "Oca", role: "admin", password: ocaPassword });
   addAccount({ id: "belakasir", name: "Bela", role: "admin", password: null });
   addAccount({ id: "ocakasir", name: "Rosa", role: "admin", password: null });
+  addAccount({ id: "kasirggs", name: "Bela dan Oca", role: "admin", password: null });
   if (ownerId && ownerPassword && normalizeId(ownerId) !== "ownerggs") {
     addAccount({ id: normalizeId(ownerId), name: "Owner", role: "owner", password: ownerPassword });
   }

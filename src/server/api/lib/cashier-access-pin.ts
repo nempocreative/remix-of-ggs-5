@@ -38,12 +38,6 @@ export async function verifyCashierAccessPin(accountId: string, pin: string): Pr
     .limit(1);
 
   if (!storedPin) {
-    // First-run bootstrap: the Owner can sign in with OWNER_INITIAL_PIN until a real PIN is saved.
-    const initial = process.env.OWNER_INITIAL_PIN;
-    if (accountId === "ownerggs" && initial && /^[0-9]{6}$/.test(initial)) {
-      const a = Buffer.from(pin), b = Buffer.from(initial);
-      if (a.length === b.length && timingSafeEqual(a, b)) return "valid";
-    }
     return "missing";
   }
   const now = new Date();
