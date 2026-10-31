@@ -1,5 +1,7 @@
 # Remix setup
 
+- [ ] Add and verify manual discounts per service, including saved transactions and receipts.
+
 - [ ] Verify S12 Hancdon Android access after publication — older-browser syntax target applied and tablet-size login tested; physical device and published deployment remain unverified.
 - [x] Restore previous-app backup: 2 transactions, 2 customers, 8 employees and 105 services; transaction values matched and history visible. Backup contained no PINs; previously requested account PINs configured and all four logins verified.
 
