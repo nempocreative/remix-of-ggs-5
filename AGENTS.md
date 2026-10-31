@@ -12,3 +12,4 @@
 - Validate cashier login PINs exclusively against salted hashes in the server-only PIN table; no environment bootstrap or hardcoded PIN bypass, so account PIN changes take effect consistently.
 - Keep the shared cashier account mapped to the admin role on the server; owner privileges remain exclusive to owner accounts.
 - HTTPS cashier sessions use HttpOnly, Secure, SameSite=None, Partitioned cookies so embedded previews retain authentication; reject cross-site browser mutations to preserve CSRF protection.
+- Keep the client JavaScript syntax target at Chrome/Edge 80, Firefox 78 and Safari 14 so older Android browsers do not receive baseline-only syntax; this does not polyfill browser APIs or lower the server runtime target.
