@@ -17,6 +17,10 @@ import { Link } from '@/pos/router-compat';
 import type { SalonId } from '@/pos/lib/menu';
 import { displayStaffName } from '@/lib/utils';
 import './employee-performance-page.css';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { SaleRevisionDialog, type EditableSale } from '@/pos/components/sale-revision-dialog';
+import { Pencil } from 'lucide-react';
 
 type Props = { salon: SalonId };
 type Period = 'month' | 'last30' | 'all' | 'custom';
@@ -128,6 +132,8 @@ export default function EmployeePerformancePage({ salon }: Props) {
   const [expandedEmployee, setExpandedEmployee] = useState<string | null>(null);
   const [feedback, setFeedback] = useState('');
   const [error, setError] = useState('');
+  const [revisionEmployee, setRevisionEmployee] = useState<Employee | null>(null);
+  const [revisionSale, setRevisionSale] = useState<EditableSale | null>(null);
 
   const employees = employeesQuery.data ?? [];
   const sales = salesQuery.data ?? [];
@@ -499,6 +505,7 @@ export default function EmployeePerformancePage({ salon }: Props) {
                       {(ledger?.employees[employee.id]?.savings ?? 0) > 0 && <button type="button" className="gp-roster-action" disabled={settle.isPending} onClick={() => void runSettlement(employee, 'savings_withdraw', ledger?.employees[employee.id]?.savings ?? 0)} data-testid={`button-withdraw-savings-${employee.id}`}>Cairkan tabungan</button>}
                     </div>
                     <div className="gp-roster-actions">
+                      <Button type="button" variant="outline" size="sm" onClick={() => setRevisionEmployee(employee)} data-testid={`button-revise-performance-${employee.id}`}><Pencil/> Revisi kinerja</Button>
                       <button
                         type="button"
                         className="gp-roster-action gp-cashier-toggle"
@@ -609,5 +616,25 @@ export default function EmployeePerformancePage({ salon }: Props) {
         <footer className="gp-report-foot"><div><FileWarning size={14}/><span>Komisi memakai snapshot saat pembayaran; item tanpa staf dikecualikan.</span></div><span>{totalServices} layanan · {totalTransactions} transaksi staf · WIB Jakarta</span></footer>
       </section>
     </div>
+    <Dialog open={Boolean(revisionEmployee) && !revisionSale} onOpenChange={open => { if (!open) setRevisionEmployee(null); }}>
+      <DialogContent className="max-w-2xl w-[calc(100%-24px)]">
+        <DialogHeader><DialogTitle>Revisi kinerja · {revisionEmployee?.name}</DialogTitle><DialogDescription>{selectedPeriodLabel}</DialogDescription></DialogHeader>
+        <div className="divide-y divide-border">
+          {sales.filter(sale => {
+            const date = jakartaDateKey(sale.createdAt);
+            const cutoff = revisionEmployee ? ledger?.employees[revisionEmployee.id]?.cutoff : null;
+            return sale.items.some(item => item.employeeId === revisionEmployee?.id)
+              && (!activeRange.start || (date && date >= activeRange.start))
+              && (!activeRange.end || (date && date <= activeRange.end))
+              && (!cutoff || new Date(sale.createdAt) > new Date(cutoff));
+          }).map(sale => <div key={sale.id} className="flex min-w-0 items-center justify-between gap-3 py-3">
+            <div className="min-w-0 text-sm"><strong className="break-words">{sale.invoiceNumber}</strong><p className="text-muted-foreground">{sale.customerName} · {money(sale.total)}</p><p className="text-xs text-muted-foreground">{sale.items.filter(item => item.employeeId === revisionEmployee?.id).map(item => `${item.name} × ${item.quantity}`).join(', ')}</p></div>
+            <Button type="button" variant="outline" size="sm" onClick={() => setRevisionSale({ ...sale, createdAt: undefined } as EditableSale)} aria-label={`Revisi kinerja transaksi ${sale.invoiceNumber}`}><Pencil/> Revisi</Button>
+          </div>)}
+          {revisionEmployee && !sales.some(sale => sale.items.some(item => item.employeeId === revisionEmployee.id) && (!ledger?.employees[revisionEmployee.id]?.cutoff || new Date(sale.createdAt) > new Date(ledger.employees[revisionEmployee.id].cutoff ?? ''))) && <p className="py-6 text-sm text-muted-foreground">Belum ada transaksi yang dapat direvisi.</p>}
+        </div>
+      </DialogContent>
+    </Dialog>
+    {revisionSale && <SaleRevisionDialog sale={revisionSale} onClose={() => { setRevisionSale(null); setRevisionEmployee(null); }}/>} 
   </main>;
 }
