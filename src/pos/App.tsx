@@ -714,7 +714,7 @@ function DeleteConfirmation({
     setIsDeleting(true);
     setError('');
     try {
-      await loginCashier({ id: cashierId.trim(), password });
+      await loginCashier({ id: cashierId.trim().toLowerCase(), pin: password.trim() });
       const response = await fetch(endpoint, { method: 'DELETE' });
       if (!response.ok) {
         const body = await response.json().catch(() => ({})) as { error?: unknown };
@@ -749,7 +749,7 @@ function DeleteConfirmation({
         <label className="block text-xs font-bold text-[#65485a]">ID kasir
           <input autoComplete="username" value={cashierId} onChange={(event) => setCashierId(event.target.value)} className="mt-1.5 w-full rounded-xl border border-[#ead7e1] bg-white px-3 py-2.5 text-sm font-medium outline-none focus:border-[#bd3c76] focus:ring-2 focus:ring-[#bd3c76]/10"/>
         </label>
-        <label className="block text-xs font-bold text-[#65485a]">Kata sandi kasir
+        <label className="block text-xs font-bold text-[#65485a]">Kata sandi (PIN) kasir
           <input type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} className="mt-1.5 w-full rounded-xl border border-[#ead7e1] bg-white px-3 py-2.5 text-sm font-medium outline-none focus:border-[#bd3c76] focus:ring-2 focus:ring-[#bd3c76]/10"/>
         </label>
       </div>
