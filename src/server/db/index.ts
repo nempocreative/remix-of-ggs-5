@@ -1,35 +1,26 @@
-import { drizzle } from "drizzle-orm/node-postgres";
-import pg from "pg";
+import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import * as schema from "./schema";
 
-const { Pool } = pg;
+type DB = PostgresJsDatabase<typeof schema>;
+let instance: DB | null = null;
 
-import fs from "node:fs";
-import path from "node:path";
-
-if (!process.env.DATABASE_URL) {
-  const envPaths = [
-    path.resolve(process.cwd(), ".env"),
-    path.resolve(process.cwd(), "../../.env"),
-    path.resolve(process.cwd(), "../../../.env"),
-  ];
-  for (const p of envPaths) {
-    if (fs.existsSync(p)) {
-      try {
-        process.loadEnvFile(p);
-        break;
-      } catch {}
-    }
-  }
+function getDb(): DB {
+  if (instance) return instance;
+  const url = process.env.SUPABASE_DB_URL || process.env.DATABASE_URL;
+  if (!url) throw new Error("Database URL is not configured.");
+  const client = postgres(url, { prepare: false, max: 1, idle_timeout: 20 });
+  instance = drizzle(client, { schema });
+  return instance;
 }
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
-}
-
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle(pool, { schema });
+// Lazy proxy: the connection opens inside a request handler, never at module load.
+export const db = new Proxy({} as DB, {
+  get(_t, prop) {
+    const real = getDb() as any;
+    const v = real[prop];
+    return typeof v === "function" ? v.bind(real) : v;
+  },
+});
 
 export * from "./schema";

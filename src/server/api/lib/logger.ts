@@ -1,20 +1,6 @@
-import pino from "pino";
-
-const isProduction = process.env.NODE_ENV === "production";
-
-export const logger = pino({
-  level: process.env.LOG_LEVEL ?? "info",
-  redact: [
-    "req.headers.authorization",
-    "req.headers.cookie",
-    "res.headers['set-cookie']",
-  ],
-  ...(isProduction
-    ? {}
-    : {
-        transport: {
-          target: "pino-pretty",
-          options: { colorize: true },
-        },
-      }),
-});
+export const logger = {
+  info: (...a: unknown[]) => console.log(...a),
+  warn: (...a: unknown[]) => console.warn(...a),
+  error: (...a: unknown[]) => console.error(...a),
+  debug: (..._a: unknown[]) => {},
+};
