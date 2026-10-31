@@ -18,6 +18,7 @@ import { getCashierSessionUser, requireCashierSession } from "../lib/cashier-ses
 import { rebuildSalonCustomerSummary } from "../lib/points-ledger";
 
 import { calculateSaleDiscounts, serviceDiscount } from "@/lib/sale-discounts";
+import { saleRevisionSchema, revisionTotals } from "@/lib/sale-revision";
 
 const router: IRouter = Router();
 const RUPIAH_PER_POINT = 1_000;
@@ -269,6 +270,49 @@ router.delete("/sales/:id", requireCashierSession, async (req, res): Promise<voi
 
   req.log.info({ saleId: deleted.id }, "Deleted POS transaction.");
   res.status(204).end();
+});
+
+router.patch("/sales/:id", requireCashierSession, async (req, res): Promise<void> => {
+  const id = String(req.params.id ?? "");
+  if (!/^[0-9a-f-]{36}$/i.test(id)) { res.status(400).json({ error: "ID transaksi tidak valid." }); return; }
+  const parsed = saleRevisionSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Lengkapi data transaksi dan staf setiap layanan." }); return; }
+  const existing = await getSaleById(id);
+  if (!existing) { res.status(404).json({ error: "Transaksi tidak ditemukan." }); return; }
+  const salonScope = getCashierSessionUser(req)?.salonScope ?? null;
+  if (salonScope && existing.salon !== salonScope) { res.status(403).json({ error: "Akun ini hanya dapat mengakses salon yang ditetapkan." }); return; }
+  const input = parsed.data;
+  let calculated: ReturnType<typeof revisionTotals>;
+  try { calculated = revisionTotals(input); } catch (error) { res.status(400).json({ error: error instanceof Error ? error.message : "Data revisi tidak valid." }); return; }
+  const [services, employees] = await Promise.all([
+    db.select().from(salonServicesTable).where(eq(salonServicesTable.salon, existing.salon)),
+    db.select().from(salonEmployeesTable).where(eq(salonEmployeesTable.salon, existing.salon)),
+  ]);
+  const serviceById = new Map(services.map(service => [service.id, service]));
+  const employeeById = new Map(employees.map(employee => [employee.id, employee]));
+  if (input.items.some(item => !serviceById.has(item.serviceId) || !employeeById.has(item.employeeId))) { res.status(400).json({ error: "Layanan atau staf tidak tersedia di salon ini." }); return; }
+  const bases = allocateCommissionBases(input.items.map(item => ({ unitPrice: item.unitPrice * item.quantity - serviceDiscount(item), quantity: 1 })), calculated.total, calculated.remaining);
+  const items = input.items.map((item, lineIndex) => {
+    const employee = employeeById.get(item.employeeId);
+    const service = serviceById.get(item.serviceId);
+    if (!employee || !service) throw new Error("Layanan atau staf tidak tersedia.");
+    const oldItem = existing.items[lineIndex];
+    const commissionPercent = oldItem?.serviceId === item.serviceId && oldItem.employeeId === item.employeeId
+      ? oldItem.commissionPercent : service.commissionPercent ?? employee.commissionPercent;
+    return { ...item, lineIndex, employeeName: employee.name, commissionPercent, commissionBase: bases[lineIndex], commissionAmount: Math.round(bases[lineIndex] * commissionPercent / 100) };
+  });
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { error } = await supabaseAdmin.rpc('pos_revise_sale', {
+    p_id: id, p_salon_scope: salonScope as string,
+    p_sale: { ...input, subtotal: calculated.subtotal, discount: calculated.discount, total: calculated.total, discountMode: calculated.appliedDiscountMode, discountValue: calculated.appliedDiscountValue, pointsEarned: calculated.pointsEarned, change: calculated.change },
+    p_items: items,
+  });
+  if (error) {
+    req.log.warn({ saleId: id, code: error.code }, "Sale revision rejected.");
+    res.status(409).json({ error: error.code === 'P0001' ? error.message : "Revisi belum tersimpan. Silakan coba lagi." }); return;
+  }
+  const revised = await getSaleById(id);
+  res.json(CreateSaleResponse.parse(revised));
 });
 
 router.post("/sales", async (req, res): Promise<void> => {
