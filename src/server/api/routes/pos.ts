@@ -363,7 +363,7 @@ router.post("/sales", async (req, res): Promise<void> => {
     return;
   }
   const employeeById = new Map(employees.map((employee) => [employee.id, employee]));
-  const commissionBases = allocateCommissionBases(input.items.map(item => ({ unitPrice: item.unitPrice * item.quantity - (item.discount ?? 0), quantity: 1 })), total, calculated.remaining);
+  const commissionBases = allocateCommissionBases(input.items.map(item => ({ unitPrice: item.unitPrice * item.quantity - serviceDiscount(item), quantity: 1 })), total, calculated.remaining);
 
   const created = await db.transaction(async (tx) => {
     const [inserted] = await tx

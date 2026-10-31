@@ -55,7 +55,7 @@ import { defaultReceiptCopy } from '@/pos/lib/receipt-copy';
 import { calculateSaleDiscounts, serviceDiscount } from '@/lib/sale-discounts';
 import { ServiceDiscountInput } from '@/pos/components/service-discount-input';
 
-type CartLine = { serviceId: string; name: string; unitPrice: number; quantity: number; discount?: number; employeeId?: string | null; employeeName?: string | null; commissionPercent?: number; commissionBase?: number; commissionAmount?: number };
+type CartLine = { serviceId: string; name: string; unitPrice: number; quantity: number; discount?: number; discountType?: 'nominal' | 'percent'; employeeId?: string | null; employeeName?: string | null; commissionPercent?: number; commissionBase?: number; commissionAmount?: number };
 type DiscountMode = 'nominal' | 'percent';
 type Sale = { id: string; salon: SalonId; invoiceNumber: string; createdAt: string; customerName: string; customerWhatsapp?: string; customerPhone?: string | null; cashierName?: string | null; paymentMethod: string; discountMode?: DiscountMode; discountValue?: number; items: CartLine[]; subtotal: number; discount: number; total: number; amountReceived: number; change: number; pointsEarned?: number; pointsBalance?: number };
 type CustomerProfile = { salon: SalonId; phone: string; memberCode: string; name: string; points: number; transactionCount: number; totalSpent: number; lastTransactionAt: string | null };
@@ -1101,8 +1101,8 @@ function Cashier() {
           discountValue: discountMode === 'percent' ? Math.min(discountInput, 100) : manualDiscount,
           amountReceived: received,
           serviceFlow,
-          items: cart.map(({ serviceId, name, unitPrice, quantity, employeeId, discount }) => ({
-            serviceId, name, unitPrice, quantity, discount: serviceDiscount({ unitPrice, quantity, discount }), employeeId: employeeId as string,
+          items: cart.map(({ serviceId, name, unitPrice, quantity, employeeId, discount, discountType }) => ({
+            serviceId, name, unitPrice, quantity, discount: discount ?? 0, discountType: discountType ?? 'nominal', employeeId: employeeId as string,
           })),
         },
       });
@@ -1239,7 +1239,7 @@ function Cashier() {
                   </select>
                 </label>
                 <div className="mt-2 flex items-center justify-between"><div className="flex items-center gap-1 rounded-lg border border-[#ecd8e2] bg-white p-0.5"><button aria-label="Kurangi jumlah" data-testid={`button-decrease-cart-item-${index}`} onClick={()=>setCart((items)=>items.map((item,i)=>i===index?{...item,quantity:item.quantity-1,discount:serviceDiscount({...item,quantity:item.quantity-1})}:item).filter((item)=>item.quantity>0))} className="grid h-6 w-6 place-items-center rounded-md text-[#79586b] hover:bg-[#f8eaf1]"><Minus size={12}/></button><span className="w-5 text-center text-[11px] font-bold text-[#53374a]">{line.quantity}</span><button aria-label="Tambah jumlah" data-testid={`button-increase-cart-item-${index}`} onClick={()=>setCart((items)=>items.map((item,i)=>i===index?{...item,quantity:item.quantity+1}:item))} className="grid h-6 w-6 place-items-center rounded-md text-[#79586b] hover:bg-[#f8eaf1]"><Plus size={12}/></button></div><b className="text-[11px] text-[#55374a]">{money(line.unitPrice*line.quantity)}</b></div>
-                <ServiceDiscountInput line={line} index={index} onChange={discount=>setCart(items=>items.map((item,i)=>i===index?{...item,discount}:item))}/>
+                <ServiceDiscountInput line={line} index={index} onChange={(discount,discountType)=>setCart(items=>items.map((item,i)=>i===index?{...item,discount,discountType}:item))}/>
                 {serviceDiscount(line)>0&&<div className="mt-1 flex justify-between gap-2 text-[10px] text-primary"><span>Setelah diskon</span><b data-testid={`text-service-net-${index}`}>{money(line.unitPrice*line.quantity-serviceDiscount(line))}</b></div>}
                 {assignedEmployee&&<p className="mt-1 text-[9px] font-semibold text-[#967387]" data-testid={`text-assigned-employee-${index}`}>{displayStaffName(assignedEmployee.name)} · staf yang menangani</p>}
               </div>;
