@@ -9,4 +9,4 @@
 
 - [x] Verify copied migration history is cleared and the scaffold is empty.
 - [ ] Update OWNER_INITIAL_PIN and SESSION_SECRET — secure form declined by user; OWNER_INITIAL_PIN is not referenced by current application code.
-- [ ] Enable automatic Git sync — requires the user to connect through Project settings → Git; existing repositories cannot be linked through Git sync.- [ ] Restore backup ggs-beauty-pos-backup-2026-10-31_1.json (data + PIN)
+- [ ] Enable automatic Git sync — requires the user to connect through Project settings → Git; existing repositories cannot be linked through Git sync.- [x] Restore backup 2026-10-31_1 (data + PIN)
