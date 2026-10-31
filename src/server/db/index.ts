@@ -29,12 +29,24 @@ async function run(sql: string, params: unknown[]) {
   return (data ?? []) as unknown[][];
 }
 
-export const db: DB = drizzle(
+const base: DB = drizzle(
   async (sql, params, method) => {
     const rows = await run(sql, params);
     return { rows: method === "get" ? (rows[0] as any) : rows };
   },
   { schema },
 );
+
+// The proxy driver has no transactions; run the callback against the same
+// database handle so the original handlers keep working (statements are not atomic).
+(base as any).transaction = async (fn: (tx: any) => Promise<unknown>) => {
+  const tx = Object.create(base);
+  tx.rollback = () => {
+    throw new Error("Transaction rolled back");
+  };
+  return fn(tx);
+};
+
+export const db: DB = base;
 
 export * from "./schema";
