@@ -8,6 +8,13 @@
       "when": 1793422717176,
       "tag": "0000_ggs_kasir_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793423010704,
+      "tag": "0001_app_sql_bridge",
+      "breakpoints": true
     }
   ]
 }
