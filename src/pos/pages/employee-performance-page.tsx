@@ -137,6 +137,16 @@ export default function EmployeePerformancePage({ salon }: Props) {
 
   const employees = employeesQuery.data ?? [];
   const sales = salesQuery.data ?? [];
+  const revisionCandidates = sales.filter(sale => {
+    const date = jakartaDateKey(sale.createdAt);
+    const cutoff = revisionEmployee ? ledger?.employees[revisionEmployee.id]?.cutoff : null;
+    const range = period === 'all' ? { start: null, end: null } : period === 'custom' ? appliedCustomRange : period === 'last30'
+      ? { start: addDaysToDateKey(jakartaDateKey(new Date()) ?? '', -29), end: jakartaDateKey(new Date()) }
+      : currentMonthRange();
+    return sale.items.some(item => item.employeeId === revisionEmployee?.id)
+      && (!range.start || (date && date >= range.start)) && (!range.end || (date && date <= range.end))
+      && (!cutoff || new Date(sale.createdAt) > new Date(cutoff));
+  });
   const todayKey = jakartaDateKey(new Date())!;
   const activeRange = useMemo(() => {
     if (period === 'all') return { start: null, end: null };
@@ -620,18 +630,11 @@ export default function EmployeePerformancePage({ salon }: Props) {
       <DialogContent className="max-w-2xl w-[calc(100%-24px)]">
         <DialogHeader><DialogTitle>Revisi kinerja · {revisionEmployee?.name}</DialogTitle><DialogDescription>{selectedPeriodLabel}</DialogDescription></DialogHeader>
         <div className="divide-y divide-border">
-          {sales.filter(sale => {
-            const date = jakartaDateKey(sale.createdAt);
-            const cutoff = revisionEmployee ? ledger?.employees[revisionEmployee.id]?.cutoff : null;
-            return sale.items.some(item => item.employeeId === revisionEmployee?.id)
-              && (!activeRange.start || (date && date >= activeRange.start))
-              && (!activeRange.end || (date && date <= activeRange.end))
-              && (!cutoff || new Date(sale.createdAt) > new Date(cutoff));
-          }).map(sale => <div key={sale.id} className="flex min-w-0 items-center justify-between gap-3 py-3">
+          {revisionCandidates.map(sale => <div key={sale.id} className="flex min-w-0 items-center justify-between gap-3 py-3">
             <div className="min-w-0 text-sm"><strong className="break-words">{sale.invoiceNumber}</strong><p className="text-muted-foreground">{sale.customerName} · {money(sale.total)}</p><p className="text-xs text-muted-foreground">{sale.items.filter(item => item.employeeId === revisionEmployee?.id).map(item => `${item.name} × ${item.quantity}`).join(', ')}</p></div>
-            <Button type="button" variant="outline" size="sm" onClick={() => setRevisionSale({ ...sale, createdAt: undefined } as EditableSale)} aria-label={`Revisi kinerja transaksi ${sale.invoiceNumber}`}><Pencil/> Revisi</Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => setRevisionSale(sale)} aria-label={`Revisi kinerja transaksi ${sale.invoiceNumber}`}><Pencil/> Revisi</Button>
           </div>)}
-          {revisionEmployee && !sales.some(sale => sale.items.some(item => item.employeeId === revisionEmployee.id) && (!ledger?.employees[revisionEmployee.id]?.cutoff || new Date(sale.createdAt) > new Date(ledger.employees[revisionEmployee.id].cutoff ?? ''))) && <p className="py-6 text-sm text-muted-foreground">Belum ada transaksi yang dapat direvisi.</p>}
+          {revisionCandidates.length === 0 && <p className="py-6 text-sm text-muted-foreground">Belum ada transaksi yang dapat direvisi pada periode ini.</p>}
         </div>
       </DialogContent>
     </Dialog>
