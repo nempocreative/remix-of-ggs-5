@@ -17,6 +17,8 @@ import { db, customersTable, queueBookingsTable, saleItemsTable, salonCustomersT
 import { getCashierSessionUser, requireCashierSession } from "../lib/cashier-session";
 import { rebuildSalonCustomerSummary } from "../lib/points-ledger";
 
+import { calculateSaleDiscounts } from "@/lib/sale-discounts";
+
 const router: IRouter = Router();
 const RUPIAH_PER_POINT = 1_000;
 const MAX_AMOUNT = 2_000_000_000;
@@ -99,8 +101,9 @@ function toSaleResponse(row: SaleRow, items: SaleItemRow[]) {
     discountValue: row.discountValue,
     items: items
       .sort((a, b) => a.lineIndex - b.lineIndex)
-      .map(({ serviceId, name, unitPrice, quantity, employeeId, employeeName, commissionPercent, commissionBase, commissionAmount }) => ({
+      .map(({ serviceId, name, unitPrice, quantity, employeeId, employeeName, commissionPercent, commissionBase, commissionAmount, discount }) => ({
         serviceId,
+        discount,
         name,
         unitPrice,
         quantity,
@@ -299,37 +302,19 @@ router.post("/sales", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Diskon tidak boleh melebihi 100%." });
     return;
   }
-  const manualDiscount =
-    input.discountMode === "percent"
-      ? Math.round((subtotal * input.discountValue) / 100)
-      : Math.round(input.discountValue);
-  if (manualDiscount > subtotal) {
-    res.status(400).json({ error: "Diskon tidak boleh melebihi subtotal." });
+  if (input.items.some(item => (item.discount ?? 0) > item.unitPrice * item.quantity)) {
+    res.status(400).json({ error: "Diskon layanan tidak boleh melebihi harga layanan." });
     return;
   }
-  let appliedDiscountMode = input.discountMode;
-  let appliedDiscountValue = input.discountMode === "nominal"
-    ? manualDiscount
-    : input.discountValue;
-  let discount = manualDiscount;
-  if (memberPromoActive) {
-    if (input.discountMode === "percent") {
-      appliedDiscountMode = "percent";
-      appliedDiscountValue = Math.min(100, input.discountValue + 10);
-      discount = Math.min(subtotal, Math.round((subtotal * appliedDiscountValue) / 100));
-    } else {
-      const memberDiscount = Math.round((subtotal * 10) / 100);
-      discount = Math.min(subtotal, manualDiscount + memberDiscount);
-      if (manualDiscount === 0) {
-        appliedDiscountMode = "percent";
-        appliedDiscountValue = 10;
-      } else {
-        appliedDiscountMode = "nominal";
-        appliedDiscountValue = discount;
-      }
-    }
+  const calculated = calculateSaleDiscounts(input.items, input.discountMode, input.discountValue, memberPromoActive);
+  const requestedManual = input.discountMode === "percent"
+    ? Math.round(calculated.remaining * input.discountValue / 100)
+    : Math.round(input.discountValue);
+  if (requestedManual > calculated.remaining) {
+    res.status(400).json({ error: "Diskon struk tidak boleh melebihi sisa subtotal." });
+    return;
   }
-  const total = subtotal - discount;
+  const { discount, total, appliedDiscountMode, appliedDiscountValue } = calculated;
   if (
     input.paymentMethod === "Tunai"
       ? input.amountReceived < total
@@ -377,7 +362,7 @@ router.post("/sales", async (req, res): Promise<void> => {
     return;
   }
   const employeeById = new Map(employees.map((employee) => [employee.id, employee]));
-  const commissionBases = allocateCommissionBases(input.items, total, subtotal);
+  const commissionBases = allocateCommissionBases(input.items.map(item => ({ unitPrice: item.unitPrice * item.quantity - (item.discount ?? 0), quantity: 1 })), total, calculated.remaining);
 
   const created = await db.transaction(async (tx) => {
     const [inserted] = await tx
@@ -424,8 +409,9 @@ router.post("/sales", async (req, res): Promise<void> => {
       .insert(saleItemsTable)
       .values(
         input.items.map((item, lineIndex) => {
-          const employee = employeeById.get(item.employeeId)!;
-          const service = serviceById.get(item.serviceId)!;
+          const employee = employeeById.get(item.employeeId);
+          const service = serviceById.get(item.serviceId);
+          if (!employee || !service) throw new Error("Layanan atau staf tidak tersedia.");
           const commissionPercent = service.commissionPercent ?? employee.commissionPercent;
           return {
           saleId: inserted.id,
@@ -434,6 +420,7 @@ router.post("/sales", async (req, res): Promise<void> => {
           name: item.name.trim(),
           unitPrice: item.unitPrice,
           quantity: item.quantity,
+          discount: item.discount ?? 0,
           employeeId: employee.id,
           employeeName: employee.name,
           commissionPercent,
@@ -567,6 +554,7 @@ router.post("/sales/import", async (req, res): Promise<void> => {
             name: item.name,
             unitPrice: item.unitPrice,
             quantity: item.quantity,
+          discount: item.discount ?? 0,
             employeeId: null,
             employeeName: null,
             commissionPercent: 0,

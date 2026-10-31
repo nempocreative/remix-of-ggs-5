@@ -221,6 +221,7 @@ export interface WhatsAppCampaignInput {
 }
 
 export interface SaleItem {
+  discount?: number;
   serviceId: string;
   name: string;
   /** @minimum 0 */
@@ -243,6 +244,7 @@ export interface SaleItem {
 }
 
 export interface SaleItemInput {
+  discount?: number;
   serviceId: string;
   name: string;
   /** @minimum 0 */

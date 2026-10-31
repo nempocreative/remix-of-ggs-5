@@ -52,8 +52,10 @@ import { displayStaffName } from '@/lib/utils';
 import { downloadReceiptPdf } from '@/pos/lib/receipt-pdf';
 import { downloadMemberCardPdf } from '@/pos/lib/member-card-pdf';
 import { defaultReceiptCopy } from '@/pos/lib/receipt-copy';
+import { calculateSaleDiscounts, serviceDiscount } from '@/lib/sale-discounts';
+import { ServiceDiscountInput } from '@/pos/components/service-discount-input';
 
-type CartLine = { serviceId: string; name: string; unitPrice: number; quantity: number; employeeId?: string | null; employeeName?: string | null; commissionPercent?: number; commissionBase?: number; commissionAmount?: number };
+type CartLine = { serviceId: string; name: string; unitPrice: number; quantity: number; discount?: number; employeeId?: string | null; employeeName?: string | null; commissionPercent?: number; commissionBase?: number; commissionAmount?: number };
 type DiscountMode = 'nominal' | 'percent';
 type Sale = { id: string; salon: SalonId; invoiceNumber: string; createdAt: string; customerName: string; customerWhatsapp?: string; customerPhone?: string | null; cashierName?: string | null; paymentMethod: string; discountMode?: DiscountMode; discountValue?: number; items: CartLine[]; subtotal: number; discount: number; total: number; amountReceived: number; change: number; pointsEarned?: number; pointsBalance?: number };
 type CustomerProfile = { salon: SalonId; phone: string; memberCode: string; name: string; points: number; transactionCount: number; totalSpent: number; lastTransactionAt: string | null };
@@ -462,7 +464,7 @@ function ReceiptPreview({ salon, customerName, customerWhatsapp, cashierName, pr
         <div className="my-3 border-t border-dashed border-[#e7d2dd]"/>
         <div className="space-y-2">
           {items.map((item,index)=><div key={`${item.serviceId}-${item.unitPrice}-${index}`} className="flex justify-between gap-3 text-[10px]">
-            <div className="min-w-0"><p className="font-semibold text-[#56374a]">{item.name}</p><p className="text-[9px] text-[#9a7b8c]">{item.quantity} × {money(item.unitPrice)}</p></div>
+            <div className="min-w-0"><p className="font-semibold text-[#56374a]">{item.name}</p><p className="text-[9px] text-[#9a7b8c]">{item.quantity} × {money(item.unitPrice)}</p>{serviceDiscount(item)>0&&<p className="text-[9px] text-primary">Diskon layanan − {money(serviceDiscount(item))}</p>}</div>
             <b className="shrink-0 text-[#56374a]">{money(item.quantity*item.unitPrice)}</b>
           </div>)}
         </div>
@@ -663,7 +665,7 @@ function Receipt({ sale, onClose, enablePointRedemption = false }: { sale: Sale;
       {(sale.customerPhone||sale.customerWhatsapp)&&<div className="mt-2 flex justify-between gap-3 text-xs text-[#765b6d]"><span>Nomor HP</span><b className="text-right">{sale.customerPhone||sale.customerWhatsapp}</b></div>}
       {sale.cashierName&&<div className="mt-2 flex justify-between gap-3 text-xs text-[#765b6d]"><span>Kasir</span><b className="text-right">{sale.cashierName}</b></div>}
       <div className="my-4 border-t border-dashed border-[#e7d2dd]"/>
-      <div className="space-y-3">{sale.items.map((item) => <div key={item.serviceId} className="flex justify-between gap-4 text-sm"><div><p className="font-semibold text-[#56374a]">{item.name}</p><p className="text-[11px] text-[#9a7b8c]">{item.quantity} × {money(item.unitPrice)}</p></div><b className="shrink-0 text-[#56374a]">{money(item.quantity*item.unitPrice)}</b></div>)}</div>
+      <div className="space-y-3">{sale.items.map((item) => <div key={item.serviceId} className="flex justify-between gap-4 text-sm"><div><p className="font-semibold text-[#56374a]">{item.name}</p><p className="text-[11px] text-[#9a7b8c]">{item.quantity} × {money(item.unitPrice)}</p>{serviceDiscount(item)>0&&<p className="text-[10px] text-primary">Diskon layanan − {money(serviceDiscount(item))}</p>}</div><b className="shrink-0 text-[#56374a]">{money(item.quantity*item.unitPrice)}</b></div>)}</div>
       <div className="my-4 border-t border-dashed border-[#e7d2dd]"/>
        <div className="space-y-2 text-sm"><div className="flex justify-between text-[#765b6d]"><span>Subtotal</span><span>{money(sale.subtotal)}</span></div>{sale.discount>0&&<div className="flex justify-between font-semibold text-[#a9366b]"><span>{sale.discountMode==='percent'?`Diskon (${sale.discountValue ?? 0}%)`:'Potongan diskon'}</span><span>− {money(sale.discount)}</span></div>}<div className="flex justify-between border-t border-[#f0e5eb] pt-3 text-base font-extrabold text-[#472538]"><span>Total</span><span data-testid="text-receipt-total">{money(sale.total)}</span></div><div className="flex justify-between text-xs text-[#765b6d]"><span>{sale.paymentMethod} · Diterima</span><span>{money(sale.amountReceived)}</span></div>{sale.paymentMethod==='Tunai'&&<div className="flex justify-between text-xs font-bold text-[#b93670]"><span>Kembalian</span><span>{money(sale.change)}</span></div>}</div>
         {(sale.customerPhone||sale.customerWhatsapp)&&<div className="mt-3 rounded-xl bg-[#fbf0f5] p-3"><div className="flex items-center justify-between text-xs"><span className="flex items-center gap-1.5 font-semibold text-[#8c6078]"><Coins size={14}/> Poin didapat</span><b className="text-[#a9366b]">+{(sale.pointsEarned??pointsFromAmount(sale.total)).toLocaleString('id-ID')} poin</b></div><div className="mt-1 flex justify-between text-[10px] text-[#85697a]"><span>Saldo poin pelanggan</span><b data-testid="text-receipt-points-balance">{pointsBalance.toLocaleString('id-ID')} poin</b></div><p className="mt-2 border-t border-[#efdce5] pt-2 text-[9px] text-[#9a7b8c]">Setiap Rp1.000 transaksi mendapat 1 poin.</p></div>}
@@ -1038,22 +1040,7 @@ function Cashier() {
   const hasValidEmployeeAssignments = cart.length > 0 && cart.every((line) => !!line.employeeId && activeEmployees.some((employee) => employee.id === line.employeeId));
   const matchedCustomer = customers.find((profile) => profile.phone === normalizedCustomerPhone);
   const memberPromoActive = Boolean(matchedCustomer) && isMemberPromoWeekday(previewDateTime);
-  const manualDiscount = discountMode === 'percent'
-    ? Math.min(subtotal, Math.round(subtotal * Math.min(discountInput, 100) / 100))
-    : Math.min(subtotal, Math.round(discountInput));
-  const memberDiscountAmount = memberPromoActive ? Math.round(subtotal * 10 / 100) : 0;
-  const appliedDiscountMode: DiscountMode = memberPromoActive && discountMode === 'nominal' && manualDiscount === 0
-    ? 'percent'
-    : discountMode;
-  const appliedDiscountValue = appliedDiscountMode === 'percent'
-    ? Math.min(100, (discountMode === 'percent' ? Math.min(discountInput, 100) : 0) + (memberPromoActive ? 10 : 0))
-    : memberPromoActive ? Math.min(subtotal, manualDiscount + memberDiscountAmount) : manualDiscount;
-  const discount = memberPromoActive
-    ? discountMode === 'percent'
-      ? Math.min(subtotal, Math.round(subtotal * appliedDiscountValue / 100))
-      : Math.min(subtotal, manualDiscount + memberDiscountAmount)
-    : manualDiscount;
-  const total = subtotal-discount;
+  const { itemDiscount, remaining, manualDiscount, memberDiscountAmount, appliedDiscountMode, appliedDiscountValue, discount, total } = calculateSaleDiscounts(cart, discountMode, discountInput, memberPromoActive);
   const received = method === 'Tunai' ? parseRupiahInput(receivedText) : total;
   const change = method === 'Tunai' ? Math.max(0, received-total) : 0;
   const pointsEarned = pointsFromAmount(total);
@@ -1077,7 +1064,7 @@ function Cashier() {
   const changeDiscountMode = (nextMode: DiscountMode) => {
     if (nextMode === discountMode) return;
     const nextValue = nextMode === 'percent'
-      ? subtotal > 0 ? Math.round((manualDiscount / subtotal) * 100 * 1_000_000) / 1_000_000 : 0
+      ? remaining > 0 ? Math.round((manualDiscount / remaining) * 100 * 1_000_000) / 1_000_000 : 0
       : manualDiscount;
     setDiscountText(String(nextValue));
     setDiscountMode(nextMode);
@@ -1114,8 +1101,8 @@ function Cashier() {
           discountValue: discountMode === 'percent' ? Math.min(discountInput, 100) : manualDiscount,
           amountReceived: received,
           serviceFlow,
-          items: cart.map(({ serviceId, name, unitPrice, quantity, employeeId }) => ({
-            serviceId, name, unitPrice, quantity, employeeId: employeeId as string,
+          items: cart.map(({ serviceId, name, unitPrice, quantity, employeeId, discount }) => ({
+            serviceId, name, unitPrice, quantity, discount: serviceDiscount({ unitPrice, quantity, discount }), employeeId: employeeId as string,
           })),
         },
       });
@@ -1251,19 +1238,22 @@ function Cashier() {
                     {activeEmployees.map((employee)=><option key={employee.id} value={employee.id}>{displayStaffName(employee.name)}</option>)}
                   </select>
                 </label>
-                <div className="mt-2 flex items-center justify-between"><div className="flex items-center gap-1 rounded-lg border border-[#ecd8e2] bg-white p-0.5"><button aria-label="Kurangi jumlah" data-testid={`button-decrease-cart-item-${index}`} onClick={()=>setCart((items)=>items.map((item,i)=>i===index?{...item,quantity:item.quantity-1}:item).filter((item)=>item.quantity>0))} className="grid h-6 w-6 place-items-center rounded-md text-[#79586b] hover:bg-[#f8eaf1]"><Minus size={12}/></button><span className="w-5 text-center text-[11px] font-bold text-[#53374a]">{line.quantity}</span><button aria-label="Tambah jumlah" data-testid={`button-increase-cart-item-${index}`} onClick={()=>setCart((items)=>items.map((item,i)=>i===index?{...item,quantity:item.quantity+1}:item))} className="grid h-6 w-6 place-items-center rounded-md text-[#79586b] hover:bg-[#f8eaf1]"><Plus size={12}/></button></div><b className="text-[11px] text-[#55374a]">{money(line.unitPrice*line.quantity)}</b></div>
+                <div className="mt-2 flex items-center justify-between"><div className="flex items-center gap-1 rounded-lg border border-[#ecd8e2] bg-white p-0.5"><button aria-label="Kurangi jumlah" data-testid={`button-decrease-cart-item-${index}`} onClick={()=>setCart((items)=>items.map((item,i)=>i===index?{...item,quantity:item.quantity-1,discount:serviceDiscount({...item,quantity:item.quantity-1})}:item).filter((item)=>item.quantity>0))} className="grid h-6 w-6 place-items-center rounded-md text-[#79586b] hover:bg-[#f8eaf1]"><Minus size={12}/></button><span className="w-5 text-center text-[11px] font-bold text-[#53374a]">{line.quantity}</span><button aria-label="Tambah jumlah" data-testid={`button-increase-cart-item-${index}`} onClick={()=>setCart((items)=>items.map((item,i)=>i===index?{...item,quantity:item.quantity+1}:item))} className="grid h-6 w-6 place-items-center rounded-md text-[#79586b] hover:bg-[#f8eaf1]"><Plus size={12}/></button></div><b className="text-[11px] text-[#55374a]">{money(line.unitPrice*line.quantity)}</b></div>
+                <ServiceDiscountInput line={line} index={index} onChange={discount=>setCart(items=>items.map((item,i)=>i===index?{...item,discount}:item))}/>
+                {serviceDiscount(line)>0&&<div className="mt-1 flex justify-between gap-2 text-[10px] text-primary"><span>Setelah diskon</span><b data-testid={`text-service-net-${index}`}>{money(line.unitPrice*line.quantity-serviceDiscount(line))}</b></div>}
                 {assignedEmployee&&<p className="mt-1 text-[9px] font-semibold text-[#967387]" data-testid={`text-assigned-employee-${index}`}>{displayStaffName(assignedEmployee.name)} · staf yang menangani</p>}
               </div>;
             })}</div> : <div className="cashier-empty-cart rounded-xl border border-dashed border-[#e9d2de] px-4 py-7 text-center" data-testid="empty-cart"><span className="mx-auto grid h-9 w-9 place-items-center rounded-full bg-[#f8eaf1] text-[#bc6d91]"><ShoppingBag size={16}/></span><p className="mt-2 text-[11px] font-bold text-[#674a5b]">Belum ada layanan</p><p className="mt-0.5 text-[10px] text-[#a58a99]">Pilih layanan di menu untuk mulai.</p></div>}
             <div className="flex items-center justify-between gap-2 border-t border-dashed border-[#ead7e1] pt-2 text-[10px] text-[#85697a]"><span>Subtotal</span><b data-testid="text-cart-subtotal">{money(subtotal)}</b></div>
               <div className="space-y-1.5">
-                <span className="block text-[10px] text-[#85697a]">Jenis diskon</span>
+                {itemDiscount>0&&<div className="flex justify-between gap-2 text-[10px] text-primary" data-testid="text-service-discount-total"><span>Total diskon layanan</span><b>− {money(itemDiscount)}</b></div>}
+                <span className="block text-[10px] text-[#85697a]">Diskon tambahan struk</span>
                 <div className="grid grid-cols-2 gap-1 rounded-lg bg-[#f8edf2] p-1">
                   {([['nominal', 'Nominal (Rp)'], ['percent', 'Persen (%)']] as const).map(([value, label]) => <button key={value} type="button" data-testid={`button-discount-mode-${value}`} aria-label={value==='nominal'?'Pilih diskon nominal dalam rupiah':'Pilih diskon persen'} aria-pressed={discountMode===value} onClick={()=>changeDiscountMode(value)} className={`rounded-md px-2 py-1.5 text-[9px] font-bold transition ${discountMode===value?'bg-white text-[#a9366b] shadow-sm':'text-[#85697a] hover:bg-white/70'}`}><span className="discount-mode-label">{label}</span><span className="discount-mode-short">{value==='nominal'?'Rp':'%'}</span></button>)}
                 </div>
-                <label className="flex items-center justify-between gap-3 text-[10px] text-[#85697a]"><span>{discountMode==='percent'?'Diskon (%)':'Diskon (Rp)'}</span><span className="cashier-discount-control flex items-center rounded-lg border border-[#eddae4] bg-[#fffafb] px-2.5 focus-within:border-[#c04b7e]"><input aria-label={discountMode==='percent'?'Persentase diskon':'Nominal diskon dalam rupiah'} data-testid="input-discount" type="number" min="0" max={discountMode==='percent'?100:subtotal} step={discountMode==='percent'?'any':'1'} value={discountText} onChange={(e)=>setDiscountText(e.target.value)} className="cashier-discount-input bg-transparent py-2 text-right text-[11px] font-semibold text-[#56374a] outline-none"/><span className="ml-1 text-[10px] text-[#9a7b8d]">{discountMode==='percent'?'%':'Rp'}</span></span></label>
+                <label className="flex items-center justify-between gap-3 text-[10px] text-[#85697a]"><span>{discountMode==='percent'?'Diskon (%)':'Diskon (Rp)'}</span><span className="cashier-discount-control flex items-center rounded-lg border border-[#eddae4] bg-[#fffafb] px-2.5 focus-within:border-[#c04b7e]"><input aria-label={discountMode==='percent'?'Persentase diskon':'Nominal diskon dalam rupiah'} data-testid="input-discount" type="number" min="0" max={discountMode==='percent'?100:remaining} step={discountMode==='percent'?'any':'1'} value={discountText} onChange={(e)=>setDiscountText(e.target.value)} className="cashier-discount-input bg-transparent py-2 text-right text-[11px] font-semibold text-[#56374a] outline-none"/><span className="ml-1 text-[10px] text-[#9a7b8d]">{discountMode==='percent'?'%':'Rp'}</span></span></label>
               </div>
-              {discount>0&&<div className="flex items-center justify-between rounded-lg bg-[#fbf4f7] px-2.5 py-2 text-[10px]" data-testid="text-discount-deduction"><span className="text-[#85697a]">{memberPromoActive?discountMode==='percent'?`Total diskon (${appliedDiscountValue}%)`:'Total potongan termasuk member':discountMode==='percent'?`Diskon (${Math.min(discountInput,100)}%)`:'Potongan diskon'}</span><b className="font-semibold text-[#a9366b]">− {money(discount)}</b></div>}
+              {discount>0&&<div className="flex items-center justify-between rounded-lg bg-[#fbf4f7] px-2.5 py-2 text-[10px]" data-testid="text-discount-deduction"><span className="text-[#85697a]">{itemDiscount>0?'Total potongan diskon':memberPromoActive?discountMode==='percent'?`Total diskon (${appliedDiscountValue}%)`:'Total potongan termasuk member':discountMode==='percent'?`Diskon (${Math.min(discountInput,100)}%)`:'Potongan diskon'}</span><b className="font-semibold text-[#a9366b]">− {money(discount)}</b></div>}
              <div><p className="mb-1.5 text-[9px] font-extrabold tracking-[.13em] text-[#9b7e8e]">METODE PEMBAYARAN</p><div className="grid grid-cols-2 gap-1.5">{['Tunai','Transfer / QRIS'].map((option)=><button key={option} data-testid={`button-payment-${option==='Tunai'?'cash':'noncash'}`} onClick={()=>{setMethod(option);setReceivedText('');}} className={`cashier-payment-button flex items-center justify-center gap-1.5 rounded-lg border py-2 text-[10px] font-bold ${method===option?'border-[#bd3c76] bg-[#fbecf3] text-[#a9366b]':'border-[#eddae4] text-[#866b7b] hover:bg-[#fdf7fa]'}`}>{option==='Tunai'?<Banknote size={13}/>:<CreditCard size={13}/>} {option}</button>)}</div></div>
             {method==='Tunai'&&<div><label htmlFor="input-amount-received" className="mb-1 block text-[10px] font-bold text-[#806476]">Uang diterima</label><div className="flex rounded-lg border border-[#eddae4] bg-[#fffafb] px-3 focus-within:border-[#c04b7e]"><span className="mr-2 py-2 text-[11px] font-bold text-[#a18495]">Rp</span><input id="input-amount-received" data-testid="input-amount-received" type="text" inputMode="numeric" value={receivedText} onChange={(e)=>handleReceivedInput(e.currentTarget)} placeholder={formatRupiahInput(total)} className="w-full bg-transparent py-2 text-xs font-semibold text-[#56374a] outline-none"/></div><div className="mt-1.5 flex items-center justify-between rounded-lg bg-[#f8edf2] px-3 py-2 text-[10px]"><span className="text-[#8c6c7e]">Kembalian</span><b className={`font-display text-sm ${received>=total?'text-[#a9366b]':'text-[#b84e56]'}`} data-testid="text-change-due">{money(change)}</b></div></div>}
           </div>
@@ -1357,7 +1347,7 @@ function downloadHistoryCsv(salon: SalonId, rows: Sale[]) {
     sale.cashierName || '',
     sale.items.map((item) => {
       const staffName = item.employeeName?.trim() ? displayStaffName(item.employeeName) : 'Staf tidak tercatat';
-      return `${item.name} × ${item.quantity} @ ${money(item.unitPrice)} = ${money(item.unitPrice * item.quantity)} · ${staffName}`;
+      return `${item.name} × ${item.quantity} @ ${money(item.unitPrice)} = ${money(item.unitPrice * item.quantity)}${serviceDiscount(item) > 0 ? ` · Diskon layanan ${money(serviceDiscount(item))}` : ""} · ${staffName}`;
     }).join(' | '),
     sale.subtotal,
     sale.discountMode === 'percent' ? `Persen (${sale.discountValue ?? 0}%)` : sale.discount > 0 ? 'Nominal' : '',
@@ -2105,7 +2095,7 @@ function CustomerTransaction({ sale, open, onToggle, onReceipt }: { sale: Sale; 
     </button>
     {open && <div className="border-t border-[#f5edf1] bg-[#fffafb] px-3 py-3 sm:px-4">
       <div className="space-y-2">
-        {sale.items.map((item, index) => <div key={`${sale.id}-${index}`} className="flex justify-between gap-3 text-[10px]"><span className="min-w-0 text-[#765b6d]">{item.name} <span className="text-[#a58a99]">× {item.quantity}</span><span className="mt-1 block text-[9px] text-[#9a7b8d]">{item.employeeName?.trim() ? `Dilayani oleh ${displayStaffName(item.employeeName)}` : 'Nama staf tidak tercatat'}</span></span><b className="shrink-0 text-[#5c3b50]">{money(item.unitPrice * item.quantity)}</b></div>)}
+        {sale.items.map((item, index) => <div key={`${sale.id}-${index}`} className="flex justify-between gap-3 text-[10px]"><span className="min-w-0 text-[#765b6d]">{item.name} <span className="text-[#a58a99]">× {item.quantity}</span><span className="mt-1 block text-[9px] text-[#9a7b8d]">{item.employeeName?.trim() ? `Dilayani oleh ${displayStaffName(item.employeeName)}` : 'Nama staf tidak tercatat'}</span>{serviceDiscount(item)>0&&<span className="mt-1 block text-[10px] text-primary">Diskon layanan − {money(serviceDiscount(item))}</span>}</span><b className="shrink-0 text-[#5c3b50]">{money(item.unitPrice * item.quantity)}</b></div>)}
       </div>
       <div className="mt-3 space-y-1.5 border-t border-dashed border-[#e4cbd7] pt-3 text-[10px]">
         <HistoryMoneyRow label="Subtotal" value={money(sale.subtotal)}/>
@@ -2158,7 +2148,7 @@ function HistoryRow({ sale, initialOpen = false }: { sale: Sale; initialOpen?: b
         <div className="min-w-0">
           <div className="mb-3 flex items-center justify-between gap-2"><h3 className="text-[10px] font-extrabold uppercase tracking-[.14em] text-[#9a7b8d]">Layanan selesai</h3><span className="rounded-full bg-[#f8eff3] px-2 py-1 text-[9px] font-bold text-[#8d6279]">{itemCount} item</span></div>
           <div className="space-y-2.5">
-             {sale.items.map((item,index)=><div key={`${sale.id}-${index}`} className="flex min-w-0 items-center justify-between gap-4 text-xs"><span className="min-w-0 break-words font-semibold text-[#765b6d]">{item.name}<span className="ml-1 font-medium text-[#a58a99]">× {item.quantity}</span><span className="mt-1 block text-[10px] font-medium text-[#9a7b8d]">{item.employeeName?.trim() ? `Dilayani oleh ${displayStaffName(item.employeeName)}` : 'Nama staf tidak tercatat'}</span></span><b className="shrink-0 text-[#5c3b50]">{money(item.unitPrice*item.quantity)}</b></div>)}
+             {sale.items.map((item,index)=><div key={`${sale.id}-${index}`} className="flex min-w-0 items-center justify-between gap-4 text-xs"><span className="min-w-0 break-words font-semibold text-[#765b6d]">{item.name}<span className="ml-1 font-medium text-[#a58a99]">× {item.quantity}</span><span className="mt-1 block text-[10px] font-medium text-[#9a7b8d]">{item.employeeName?.trim() ? `Dilayani oleh ${displayStaffName(item.employeeName)}` : 'Nama staf tidak tercatat'}</span>{serviceDiscount(item)>0&&<span className="mt-1 block text-[10px] text-primary">Diskon layanan − {money(serviceDiscount(item))}</span>}</span><b className="shrink-0 text-[#5c3b50]">{money(item.unitPrice*item.quantity)}</b></div>)}
           </div>
           <div className="mt-4 flex items-center gap-2 border-t border-dashed border-[#e4cbd7] pt-3 text-[10px] text-[#9a7b8d]"><UserRound size={12}/>{sale.customerPhone||sale.customerWhatsapp?`Nomor pelanggan · ${sale.customerPhone||sale.customerWhatsapp}`:'Nomor kontak tidak tersedia'}</div>
         </div>
