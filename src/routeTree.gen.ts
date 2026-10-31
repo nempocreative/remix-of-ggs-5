@@ -10,33 +10,245 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SplatRouteImport } from './routes/$'
+import { Route as AbsensiRouteImport } from './routes/absensi'
+import { Route as AntrianRouteImport } from './routes/antrian'
+import { Route as BackupRouteImport } from './routes/backup'
+import { Route as KeamananSistemRouteImport } from './routes/keamanan-sistem'
+import { Route as KeamananStafRouteImport } from './routes/keamanan-staf'
+import { Route as KeuanganRouteImport } from './routes/keuangan'
+import { Route as KinerjaRouteImport } from './routes/kinerja'
+import { Route as LayananRouteImport } from './routes/layanan'
+import { Route as NotifikasiRouteImport } from './routes/notifikasi'
+import { Route as PelangganRouteImport } from './routes/pelanggan'
+import { Route as PengaturanRouteImport } from './routes/pengaturan'
+import { Route as PengeluaranRouteImport } from './routes/pengeluaran'
+import { Route as PoinRouteImport } from './routes/poin'
+import { Route as RiwayatRouteImport } from './routes/riwayat'
+import { Route as ApiSplatRouteImport } from './routes/api/$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SplatRoute = SplatRouteImport.update({
+  id: '/$',
+  path: '/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AbsensiRoute = AbsensiRouteImport.update({
+  id: '/absensi',
+  path: '/absensi',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AntrianRoute = AntrianRouteImport.update({
+  id: '/antrian',
+  path: '/antrian',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BackupRoute = BackupRouteImport.update({
+  id: '/backup',
+  path: '/backup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KeamananSistemRoute = KeamananSistemRouteImport.update({
+  id: '/keamanan-sistem',
+  path: '/keamanan-sistem',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KeamananStafRoute = KeamananStafRouteImport.update({
+  id: '/keamanan-staf',
+  path: '/keamanan-staf',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KeuanganRoute = KeuanganRouteImport.update({
+  id: '/keuangan',
+  path: '/keuangan',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KinerjaRoute = KinerjaRouteImport.update({
+  id: '/kinerja',
+  path: '/kinerja',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LayananRoute = LayananRouteImport.update({
+  id: '/layanan',
+  path: '/layanan',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotifikasiRoute = NotifikasiRouteImport.update({
+  id: '/notifikasi',
+  path: '/notifikasi',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PelangganRoute = PelangganRouteImport.update({
+  id: '/pelanggan',
+  path: '/pelanggan',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PengaturanRoute = PengaturanRouteImport.update({
+  id: '/pengaturan',
+  path: '/pengaturan',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PengeluaranRoute = PengeluaranRouteImport.update({
+  id: '/pengeluaran',
+  path: '/pengeluaran',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PoinRoute = PoinRouteImport.update({
+  id: '/poin',
+  path: '/poin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RiwayatRoute = RiwayatRouteImport.update({
+  id: '/riwayat',
+  path: '/riwayat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSplatRoute = ApiSplatRouteImport.update({
+  id: '/api/$',
+  path: '/api/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/$': typeof SplatRoute
+  '/absensi': typeof AbsensiRoute
+  '/antrian': typeof AntrianRoute
+  '/backup': typeof BackupRoute
+  '/keamanan-sistem': typeof KeamananSistemRoute
+  '/keamanan-staf': typeof KeamananStafRoute
+  '/keuangan': typeof KeuanganRoute
+  '/kinerja': typeof KinerjaRoute
+  '/layanan': typeof LayananRoute
+  '/notifikasi': typeof NotifikasiRoute
+  '/pelanggan': typeof PelangganRoute
+  '/pengaturan': typeof PengaturanRoute
+  '/pengeluaran': typeof PengeluaranRoute
+  '/poin': typeof PoinRoute
+  '/riwayat': typeof RiwayatRoute
+  '/api/$': typeof ApiSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/$': typeof SplatRoute
+  '/absensi': typeof AbsensiRoute
+  '/antrian': typeof AntrianRoute
+  '/backup': typeof BackupRoute
+  '/keamanan-sistem': typeof KeamananSistemRoute
+  '/keamanan-staf': typeof KeamananStafRoute
+  '/keuangan': typeof KeuanganRoute
+  '/kinerja': typeof KinerjaRoute
+  '/layanan': typeof LayananRoute
+  '/notifikasi': typeof NotifikasiRoute
+  '/pelanggan': typeof PelangganRoute
+  '/pengaturan': typeof PengaturanRoute
+  '/pengeluaran': typeof PengeluaranRoute
+  '/poin': typeof PoinRoute
+  '/riwayat': typeof RiwayatRoute
+  '/api/$': typeof ApiSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/$': typeof SplatRoute
+  '/absensi': typeof AbsensiRoute
+  '/antrian': typeof AntrianRoute
+  '/backup': typeof BackupRoute
+  '/keamanan-sistem': typeof KeamananSistemRoute
+  '/keamanan-staf': typeof KeamananStafRoute
+  '/keuangan': typeof KeuanganRoute
+  '/kinerja': typeof KinerjaRoute
+  '/layanan': typeof LayananRoute
+  '/notifikasi': typeof NotifikasiRoute
+  '/pelanggan': typeof PelangganRoute
+  '/pengaturan': typeof PengaturanRoute
+  '/pengeluaran': typeof PengeluaranRoute
+  '/poin': typeof PoinRoute
+  '/riwayat': typeof RiwayatRoute
+  '/api/$': typeof ApiSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/$'
+    | '/absensi'
+    | '/antrian'
+    | '/backup'
+    | '/keamanan-sistem'
+    | '/keamanan-staf'
+    | '/keuangan'
+    | '/kinerja'
+    | '/layanan'
+    | '/notifikasi'
+    | '/pelanggan'
+    | '/pengaturan'
+    | '/pengeluaran'
+    | '/poin'
+    | '/riwayat'
+    | '/api/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/$'
+    | '/absensi'
+    | '/antrian'
+    | '/backup'
+    | '/keamanan-sistem'
+    | '/keamanan-staf'
+    | '/keuangan'
+    | '/kinerja'
+    | '/layanan'
+    | '/notifikasi'
+    | '/pelanggan'
+    | '/pengaturan'
+    | '/pengeluaran'
+    | '/poin'
+    | '/riwayat'
+    | '/api/$'
+  id:
+    | '__root__'
+    | '/'
+    | '/$'
+    | '/absensi'
+    | '/antrian'
+    | '/backup'
+    | '/keamanan-sistem'
+    | '/keamanan-staf'
+    | '/keuangan'
+    | '/kinerja'
+    | '/layanan'
+    | '/notifikasi'
+    | '/pelanggan'
+    | '/pengaturan'
+    | '/pengeluaran'
+    | '/poin'
+    | '/riwayat'
+    | '/api/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  SplatRoute: typeof SplatRoute
+  AbsensiRoute: typeof AbsensiRoute
+  AntrianRoute: typeof AntrianRoute
+  BackupRoute: typeof BackupRoute
+  KeamananSistemRoute: typeof KeamananSistemRoute
+  KeamananStafRoute: typeof KeamananStafRoute
+  KeuanganRoute: typeof KeuanganRoute
+  KinerjaRoute: typeof KinerjaRoute
+  LayananRoute: typeof LayananRoute
+  NotifikasiRoute: typeof NotifikasiRoute
+  PelangganRoute: typeof PelangganRoute
+  PengaturanRoute: typeof PengaturanRoute
+  PengeluaranRoute: typeof PengeluaranRoute
+  PoinRoute: typeof PoinRoute
+  RiwayatRoute: typeof RiwayatRoute
+  ApiSplatRoute: typeof ApiSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +260,139 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$': {
+      id: '/$'
+      path: '/$'
+      fullPath: '/$'
+      preLoaderRoute: typeof SplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/absensi': {
+      id: '/absensi'
+      path: '/absensi'
+      fullPath: '/absensi'
+      preLoaderRoute: typeof AbsensiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/antrian': {
+      id: '/antrian'
+      path: '/antrian'
+      fullPath: '/antrian'
+      preLoaderRoute: typeof AntrianRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/backup': {
+      id: '/backup'
+      path: '/backup'
+      fullPath: '/backup'
+      preLoaderRoute: typeof BackupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/keamanan-sistem': {
+      id: '/keamanan-sistem'
+      path: '/keamanan-sistem'
+      fullPath: '/keamanan-sistem'
+      preLoaderRoute: typeof KeamananSistemRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/keamanan-staf': {
+      id: '/keamanan-staf'
+      path: '/keamanan-staf'
+      fullPath: '/keamanan-staf'
+      preLoaderRoute: typeof KeamananStafRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/keuangan': {
+      id: '/keuangan'
+      path: '/keuangan'
+      fullPath: '/keuangan'
+      preLoaderRoute: typeof KeuanganRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/kinerja': {
+      id: '/kinerja'
+      path: '/kinerja'
+      fullPath: '/kinerja'
+      preLoaderRoute: typeof KinerjaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/layanan': {
+      id: '/layanan'
+      path: '/layanan'
+      fullPath: '/layanan'
+      preLoaderRoute: typeof LayananRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifikasi': {
+      id: '/notifikasi'
+      path: '/notifikasi'
+      fullPath: '/notifikasi'
+      preLoaderRoute: typeof NotifikasiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pelanggan': {
+      id: '/pelanggan'
+      path: '/pelanggan'
+      fullPath: '/pelanggan'
+      preLoaderRoute: typeof PelangganRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pengaturan': {
+      id: '/pengaturan'
+      path: '/pengaturan'
+      fullPath: '/pengaturan'
+      preLoaderRoute: typeof PengaturanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pengeluaran': {
+      id: '/pengeluaran'
+      path: '/pengeluaran'
+      fullPath: '/pengeluaran'
+      preLoaderRoute: typeof PengeluaranRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/poin': {
+      id: '/poin'
+      path: '/poin'
+      fullPath: '/poin'
+      preLoaderRoute: typeof PoinRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/riwayat': {
+      id: '/riwayat'
+      path: '/riwayat'
+      fullPath: '/riwayat'
+      preLoaderRoute: typeof RiwayatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$': {
+      id: '/api/$'
+      path: '/api/$'
+      fullPath: '/api/$'
+      preLoaderRoute: typeof ApiSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  SplatRoute: SplatRoute,
+  AbsensiRoute: AbsensiRoute,
+  AntrianRoute: AntrianRoute,
+  BackupRoute: BackupRoute,
+  KeamananSistemRoute: KeamananSistemRoute,
+  KeamananStafRoute: KeamananStafRoute,
+  KeuanganRoute: KeuanganRoute,
+  KinerjaRoute: KinerjaRoute,
+  LayananRoute: LayananRoute,
+  NotifikasiRoute: NotifikasiRoute,
+  PelangganRoute: PelangganRoute,
+  PengaturanRoute: PengaturanRoute,
+  PengeluaranRoute: PengeluaranRoute,
+  PoinRoute: PoinRoute,
+  RiwayatRoute: RiwayatRoute,
+  ApiSplatRoute: ApiSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
