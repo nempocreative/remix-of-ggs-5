@@ -222,6 +222,7 @@ export interface WhatsAppCampaignInput {
 
 export interface SaleItem {
   discount?: number;
+  discountType?: 'nominal' | 'percent';
   serviceId: string;
   name: string;
   /** @minimum 0 */
@@ -245,6 +246,7 @@ export interface SaleItem {
 
 export interface SaleItemInput {
   discount?: number;
+  discountType?: 'nominal' | 'percent';
   serviceId: string;
   name: string;
   /** @minimum 0 */

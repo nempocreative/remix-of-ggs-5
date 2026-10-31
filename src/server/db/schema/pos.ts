@@ -216,6 +216,7 @@ export const saleItemsTable = pgTable(
     unitPrice: integer("unit_price").notNull(),
     quantity: integer("quantity").notNull(),
     discount: integer("discount").notNull().default(0),
+    discountType: text("discount_type").notNull().default("nominal"),
     employeeId: text("employee_id"),
     employeeName: text("employee_name"),
     commissionPercent: doublePrecision("commission_percent").notNull().default(0),
