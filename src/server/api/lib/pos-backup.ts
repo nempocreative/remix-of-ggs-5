@@ -97,6 +97,7 @@ async function getSalonBackup(salon: SalonId) {
       name: employee.name,
       commissionPercent: employee.commissionPercent,
       active: employee.active,
+      isCashier: employee.isCashier,
       createdAt: employee.createdAt.toISOString(),
     })),
     sales: sales.map((sale) => ({
@@ -289,6 +290,7 @@ export async function restorePosBackup(backup: PosBackup): Promise<BackupRestore
             name: employee.name,
             commissionPercent: employee.commissionPercent,
             active: employee.active,
+            isCashier: (employee as { isCashier?: boolean }).isCashier ?? false,
             createdAt: new Date(employee.createdAt),
           })))
           .onConflictDoUpdate({
@@ -297,6 +299,7 @@ export async function restorePosBackup(backup: PosBackup): Promise<BackupRestore
               name: sql.raw("excluded.name"),
               commissionPercent: sql.raw("excluded.commission_percent"),
               active: sql.raw("excluded.active"),
+              isCashier: sql.raw("excluded.is_cashier"),
             },
           });
       }
