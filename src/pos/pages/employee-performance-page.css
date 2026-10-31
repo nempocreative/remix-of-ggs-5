@@ -335,3 +335,12 @@
 @media (prefers-reduced-motion: reduce) {
   .ggs-performance *, .ggs-performance *::before, .ggs-performance *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+.ggs-performance .gp-commission-actions{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.ggs-performance .gp-commission-actions small{font-size:11px;opacity:.8}
+.ggs-performance .gp-settlement-history{margin-top:16px;border-top:1px solid rgba(0,0,0,.08);padding-top:12px}
+.ggs-performance .gp-settlement-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.ggs-performance .gp-settlement-head h3{margin:0;font-size:14px;font-weight:800}
+.ggs-performance .gp-settlement-history table{width:100%;border-collapse:collapse;font-size:12px}
+.ggs-performance .gp-settlement-history th,.ggs-performance .gp-settlement-history td{padding:6px 8px;border-bottom:1px solid rgba(0,0,0,.06);text-align:left}
+.ggs-performance .gp-settlement-history td:last-child,.ggs-performance .gp-settlement-history th:last-child{text-align:right}
