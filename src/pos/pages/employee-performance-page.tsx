@@ -1,4 +1,6 @@
 import { downloadTablePdf } from '@/pos/lib/table-pdf';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { customFetch } from '@/lib/api-client/custom-fetch';
 import { useMemo, useState, type FormEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -29,6 +31,11 @@ type EmployeeMetric = {
   missingSnapshotUnits: number;
   serviceBreakdown: Map<string, ServiceMetric>;
 };
+
+type Settlement = { id: string; employeeId: string; employeeName: string; action: 'withdraw' | 'save' | 'savings_withdraw'; amount: number; periodStart: string | null; periodEnd: string; createdBy: string | null; createdAt: string };
+type CommissionLedger = { settlements: Settlement[]; employees: Record<string, { cutoff: string | null; savings: number }> };
+const settlementLabel: Record<Settlement['action'], string> = { withdraw: 'Ditarik', save: 'Disimpan ke tabungan', savings_withdraw: 'Tabungan dicairkan' };
+const dateTimeLabel = (value: string) => new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Jakarta' }).format(new Date(value));
 
 const money = (amount: number) => new Intl.NumberFormat('id-ID', {
   style: 'currency', currency: 'IDR', maximumFractionDigits: 0,
@@ -96,6 +103,17 @@ export default function EmployeePerformancePage({ salon }: Props) {
   const salesQuery = useGetSales({ salon }, {
     query: { queryKey: getGetSalesQueryKey({ salon }), refetchInterval: 30_000, refetchOnWindowFocus: true },
   });
+  const ledgerQuery = useQuery({
+    queryKey: ['commission-ledger', salon],
+    queryFn: () => customFetch<CommissionLedger>(`/api/commissions/${salon}`),
+    refetchInterval: 30_000,
+  });
+  const ledger = ledgerQuery.data;
+  const settle = useMutation({
+    mutationFn: ({ employeeId, action }: { employeeId: string; action: Settlement['action'] }) =>
+      customFetch<Settlement>(`/api/commissions/${salon}/${employeeId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['commission-ledger', salon] }),
+  });
   const createEmployee = useCreateEmployee();
   const updateEmployee = useUpdateEmployee();
   const [period, setPeriod] = useState<Period>('month');
@@ -139,6 +157,8 @@ export default function EmployeePerformancePage({ salon }: Props) {
       let hasUnassignedService = false;
       for (const item of sale.items ?? []) {
         const id = item.employeeId;
+        const cutoff = id ? ledger?.employees[id]?.cutoff : null;
+        if (cutoff && new Date(sale.createdAt) <= new Date(cutoff)) continue;
         if (!id) {
           unassignedServiceUnits += Math.max(0, item.quantity ?? 1);
           hasUnassignedService = true;
@@ -190,7 +210,7 @@ export default function EmployeePerformancePage({ salon }: Props) {
       }
     }
     return { totals, unassignedServiceUnits, unassignedTransactions };
-  }, [sales, salon, activeRange]);
+  }, [sales, salon, activeRange, ledger]);
   const performance = performanceData.totals;
   const rankedEmployees = useMemo(() => employees
     .filter((employee) => showInactiveEmployees || employee.active)
@@ -299,6 +319,31 @@ export default function EmployeePerformancePage({ salon }: Props) {
   const isLoading = employeesQuery.isLoading || salesQuery.isLoading;
   const isError = employeesQuery.isError || salesQuery.isError;
   const salonName = salon === 'beauty' ? 'GGS Beauty' : 'GGS Hair Studio';
+  const runSettlement = async (employee: { id: string; name: string }, action: Settlement['action'], amount: number) => {
+    const question = action === 'withdraw'
+      ? `Tarik komisi ${displayStaffName(employee.name)} sebesar ${money(amount)} hari ini? Komisi akan pindah ke riwayat penarikan.`
+      : action === 'save'
+        ? `Simpan komisi ${displayStaffName(employee.name)} sebesar ${money(amount)} ke tabungan?`
+        : `Cairkan seluruh tabungan komisi ${displayStaffName(employee.name)} sebesar ${money(amount)}?`;
+    if (!window.confirm(question)) return;
+    setError(''); setFeedback('');
+    try {
+      const result = await settle.mutateAsync({ employeeId: employee.id, action });
+      setFeedback(`${settlementLabel[result.action]}: ${displayStaffName(employee.name)} ${money(result.amount)}.`);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Komisi belum berhasil diproses.');
+    }
+  };
+  const downloadSettlementsPdf = () => {
+    const rows = ledger?.settlements ?? [];
+    void downloadTablePdf({
+      filename: `riwayat-penarikan-komisi-${salon === 'beauty' ? 'ggs-beauty' : 'ggs-hair-studio'}-${todayKey}.pdf`,
+      title: `Riwayat Penarikan Komisi · ${salonName}`,
+      subtitle: 'Semua penarikan, simpanan, dan pencairan tabungan',
+      headers: ['Waktu', 'Staf', 'Jenis', 'Komisi sejak', 'Sampai', 'Dicatat oleh', 'Nominal (Rp)'],
+      rows: rows.map((row) => [dateTimeLabel(row.createdAt), displayStaffName(row.employeeName), settlementLabel[row.action], row.periodStart ? dateTimeLabel(row.periodStart) : row.action === 'savings_withdraw' ? '-' : 'Awal', row.action === 'savings_withdraw' ? '-' : dateTimeLabel(row.periodEnd), row.createdBy ?? '-', row.amount]),
+    });
+  };
   const downloadPerformancePdf = () => {
     const rows: (string | number)[][] = [];
     rankedEmployees.forEach(({ employee, metric }, index) => {
@@ -447,6 +492,12 @@ export default function EmployeePerformancePage({ salon }: Props) {
                       <strong>{recordedMoney(metric.commission, metric.capturedSnapshotUnits)}</strong>
                       <span>{metric.missingSnapshotUnits > 0 ? `${metric.missingSnapshotUnits} layanan tanpa snapshot` : metric.capturedSnapshotUnits > 0 ? 'Snapshot tersimpan' : 'Belum ada aktivitas'}</span>
                     </div>
+                    <div className="gp-roster-actions gp-commission-actions">
+                      <small>Tabungan: <strong>{money(ledger?.employees[employee.id]?.savings ?? 0)}</strong></small>
+                      <button type="button" className="gp-roster-action" disabled={settle.isPending || metric.commission <= 0} onClick={() => void runSettlement(employee, 'withdraw', metric.commission)} data-testid={`button-withdraw-commission-${employee.id}`}>Tarik hari ini</button>
+                      <button type="button" className="gp-roster-action" disabled={settle.isPending || metric.commission <= 0} onClick={() => void runSettlement(employee, 'save', metric.commission)} data-testid={`button-save-commission-${employee.id}`}>Simpan ke tabungan</button>
+                      {(ledger?.employees[employee.id]?.savings ?? 0) > 0 && <button type="button" className="gp-roster-action" disabled={settle.isPending} onClick={() => void runSettlement(employee, 'savings_withdraw', ledger?.employees[employee.id]?.savings ?? 0)} data-testid={`button-withdraw-savings-${employee.id}`}>Cairkan tabungan</button>}
+                    </div>
                     <div className="gp-roster-actions">
                       <button
                         type="button"
@@ -461,6 +512,13 @@ export default function EmployeePerformancePage({ salon }: Props) {
                   </article>;
                 })}</div>}
                 </>}
+          <div className="gp-settlement-history" data-testid="section-commission-history">
+            <div className="gp-settlement-head"><h3>Riwayat penarikan komisi</h3><button type="button" className="gp-refresh-button" onClick={downloadSettlementsPdf} disabled={!ledger?.settlements.length} data-testid="button-download-commission-history-pdf"><Download size={13}/><span>Unduh PDF</span></button></div>
+            {!ledger?.settlements.length ? <p className="gp-management-note">Belum ada komisi yang ditarik atau disimpan.</p>
+              : <table><thead><tr><th>Waktu</th><th>Staf</th><th>Jenis</th><th>Nominal</th></tr></thead><tbody>
+                {ledger.settlements.map((row) => <tr key={row.id}><td>{dateTimeLabel(row.createdAt)}</td><td>{displayStaffName(row.employeeName)}</td><td>{settlementLabel[row.action]}</td><td>{money(row.amount)}</td></tr>)}
+              </tbody></table>}
+          </div>
           <p className="gp-management-note">Staf nonaktif disembunyikan dari daftar utama. Riwayat transaksi dan snapshot komisi tetap tersimpan.</p>
         </section>
 

@@ -259,3 +259,20 @@ export type SalonPointRedemption = typeof salonPointRedemptionsTable.$inferSelec
 export type InsertSalonPointRedemption = typeof salonPointRedemptionsTable.$inferInsert;
 export type SaleItem = typeof saleItemsTable.$inferSelect;
 export type InsertSaleItem = typeof saleItemsTable.$inferInsert;
+
+export const commissionSettlementsTable = pgTable(
+  "pos_commission_settlements",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    salon: text("salon").notNull(),
+    employeeId: text("employee_id").notNull(),
+    employeeName: text("employee_name").notNull(),
+    action: text("action").notNull(),
+    amount: integer("amount").notNull(),
+    periodStart: timestamp("period_start", { withTimezone: true }),
+    periodEnd: timestamp("period_end", { withTimezone: true }).notNull(),
+    createdBy: text("created_by"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("pos_commission_settlements_emp_idx").on(table.salon, table.employeeId, table.createdAt)],
+);

@@ -14,3 +14,4 @@
 - HTTPS cashier sessions use HttpOnly, Secure, SameSite=None, Partitioned cookies so embedded previews retain authentication; reject cross-site browser mutations to preserve CSRF protection.
 - Keep the client JavaScript syntax target at Chrome/Edge 80, Firefox 78 and Safari 14 so older Android browsers do not receive baseline-only syntax; this does not polyfill browser APIs or lower the server runtime target.
 - Persist manual service discounts (nominal or percent, via discount + discount_type) on sale items and use the shared sale-discounts calculation for checkout and server totals; this preserves per-service receipts and prevents calculation drift.
+- Commission payouts/savings are an append-only ledger (pos_commission_settlements); performance hides an employee's sales at or before their latest withdraw/save cutoff, and the server computes amounts so the client cannot alter them.
