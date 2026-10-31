@@ -81,15 +81,19 @@ const sign = (payload: string) =>
     .update(payload)
     .digest("base64url");
 
-const getCookieOptions = (req: Request) => ({
-  httpOnly: true,
-  secure:
+const getCookieOptions = (req: Request) => {
+  const secure =
     process.env.NODE_ENV === "production" ||
-    req.get("x-forwarded-proto")?.split(",")[0].trim() === "https",
-  sameSite: "lax" as const,
-  path: "/",
-  maxAge: SESSION_TTL_SECONDS * 1000,
-});
+    req.get("x-forwarded-proto")?.split(",")[0].trim() === "https";
+  return {
+    httpOnly: true,
+    secure,
+    partitioned: secure,
+    sameSite: secure ? "none" as const : "lax" as const,
+    path: "/",
+    maxAge: SESSION_TTL_SECONDS * 1000,
+  };
+};
 
 function readCashierSession(req: Request): SessionPayload | null {
   const token = req.cookies?.[COOKIE_NAME];
@@ -148,6 +152,7 @@ export function clearCashierSession(req: Request, res: Response): void {
   res.clearCookie(COOKIE_NAME, {
     httpOnly: options.httpOnly,
     secure: options.secure,
+    partitioned: options.partitioned,
     sameSite: options.sameSite,
     path: options.path,
   });
