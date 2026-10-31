@@ -15,6 +15,13 @@
       "when": 1793423010704,
       "tag": "0001_app_sql_bridge",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793423033468,
+      "tag": "0002_app_sql_single_pass",
+      "breakpoints": true
     }
   ]
 }
