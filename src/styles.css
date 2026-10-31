@@ -256,7 +256,21 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .app-sidebar__edge:hover { background: #f8eaf1; color: #a52f67; }
 .app-sidebar__edge:focus-visible { outline: 2px solid #bd3c76; outline-offset: 2px; }
 .app-sidebar__toggle:focus-visible, .app-sidebar__link:focus-visible { outline: 2px solid #bd3c76; outline-offset: 2px; }
-.app-sidebar__nav { display: flex; flex-direction: column; gap: 6px; }
+.app-sidebar__nav {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px 2px 14px;
+  scrollbar-width: thin;
+  scrollbar-color: #e3cdd9 transparent;
+}
+.app-sidebar__nav::-webkit-scrollbar { width: 8px; }
+.app-sidebar__nav::-webkit-scrollbar-thumb { border-radius: 8px; background: #e3cdd9; }
+.app-sidebar__nav::-webkit-scrollbar-track { background: transparent; }
 .app-sidebar__link {
   display: flex;
   min-height: 44px;
