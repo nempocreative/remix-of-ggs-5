@@ -8,3 +8,6 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Validate cashier login PINs exclusively against salted hashes in the server-only PIN table; no environment bootstrap or hardcoded PIN bypass, so account PIN changes take effect consistently.
+- Keep the shared cashier account mapped to the admin role on the server; owner privileges remain exclusive to owner accounts.
