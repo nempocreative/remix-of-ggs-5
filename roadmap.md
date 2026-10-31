@@ -1,7 +1,7 @@
 # Remix setup
 
 - [ ] Verify S12 Hancdon Android access after publication — older-browser syntax target applied and tablet-size login tested; physical device and published deployment remain unverified.
-- [ ] Restore PINs and transactions from the supplied previous-app backup and verify restored data.
+- [x] Restore previous-app backup: 2 transactions, 2 customers, 8 employees and 105 services; transaction values matched and history visible. Backup contained no PINs; previously requested account PINs configured and all four logins verified.
 
 - [x] Configure and verify the separate Oca and Bela cashier logins with the supplied PIN.
 
