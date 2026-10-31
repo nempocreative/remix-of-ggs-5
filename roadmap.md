@@ -1,5 +1,7 @@
 # Remix setup
 
+- [ ] Investigate and address the blank page on the S12 Hancdon Android browser.
+
 - [x] Configure and verify the separate Oca and Bela cashier logins with the supplied PIN.
 
 - [x] Verify copied migration history is cleared and the scaffold is empty.
