@@ -18,7 +18,7 @@ export interface Request {
   get(name: string): string | undefined;
 }
 
-type CookieOpts = { httpOnly?: boolean; secure?: boolean; sameSite?: "lax" | "strict" | "none"; path?: string; maxAge?: number };
+type CookieOpts = { httpOnly?: boolean; secure?: boolean; partitioned?: boolean; sameSite?: "lax" | "strict" | "none"; path?: string; maxAge?: number };
 
 export class Response {
   statusCode = 200;
@@ -62,7 +62,8 @@ export class Response {
     if (o.maxAge !== undefined) parts.push(`Max-Age=${Math.floor(o.maxAge / 1000)}`);
     if (o.httpOnly) parts.push("HttpOnly");
     if (o.secure) parts.push("Secure");
-    if (o.sameSite) parts.push(`SameSite=${o.sameSite[0]!.toUpperCase()}${o.sameSite.slice(1)}`);
+    if (o.partitioned) parts.push("Partitioned");
+    if (o.sameSite) parts.push(`SameSite=${o.sameSite.charAt(0).toUpperCase()}${o.sameSite.slice(1)}`);
     this.headers.append("Set-Cookie", parts.join("; "));
     return this;
   }
@@ -176,6 +177,9 @@ const logger = {
 };
 
 export async function dispatch(router: RouterImpl, request: globalThis.Request, prefix: string) {
+  if (!["GET", "HEAD", "OPTIONS"].includes(request.method) && request.headers.get("sec-fetch-site") === "cross-site") {
+    return globalThis.Response.json({ error: "Permintaan dari situs lain tidak diizinkan." }, { status: 403 });
+  }
   const url = new URL(request.url);
   const headers: Record<string, string> = {};
   request.headers.forEach((v, k) => (headers[k] = v));
