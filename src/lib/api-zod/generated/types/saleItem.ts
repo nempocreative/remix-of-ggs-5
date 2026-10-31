@@ -7,6 +7,7 @@
  */
 
 export interface SaleItem {
+  discount?: number;
   serviceId: string;
   name: string;
   /** @minimum 0 */
