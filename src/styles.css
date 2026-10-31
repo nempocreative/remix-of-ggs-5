@@ -234,6 +234,27 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   transition: background .15s ease, color .15s ease;
 }
 .app-sidebar__toggle:hover { background: #f8eaf1; color: #a52f67; }
+.app-sidebar__edge {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  z-index: 30;
+  display: grid;
+  width: 22px;
+  height: 46px;
+  place-items: center;
+  transform: translateY(-50%);
+  border: 1px solid #eedde5;
+  border-right: 0;
+  border-radius: 10px 0 0 10px;
+  background: #fff;
+  color: #8e6078;
+  cursor: pointer;
+  box-shadow: 2px 0 10px rgba(91, 37, 63, .08);
+  transition: background .15s ease, color .15s ease;
+}
+.app-sidebar__edge:hover { background: #f8eaf1; color: #a52f67; }
+.app-sidebar__edge:focus-visible { outline: 2px solid #bd3c76; outline-offset: 2px; }
 .app-sidebar__toggle:focus-visible, .app-sidebar__link:focus-visible { outline: 2px solid #bd3c76; outline-offset: 2px; }
 .app-sidebar__nav { display: flex; flex-direction: column; gap: 6px; }
 .app-sidebar__link {
@@ -265,6 +286,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .sidebar-is-collapsed .app-sidebar__link { justify-content: center; padding-inline: 0; }
 .sidebar-is-collapsed .app-sidebar__toggle { border-color: transparent; background: transparent; }
 .sidebar-is-collapsed .app-sidebar__toggle:hover { border-color: #efdce6; background: #fff; }
+.sidebar-is-collapsed .app-sidebar__edge { border-color: #efdce6; border-right: 0; }
+.salon-theme-hair .app-sidebar__edge { border-color: #dedede; background: #fafafa; color: #444; }
+.salon-theme-hair .app-sidebar__edge:hover { background: #ededed; color: #111; }
 .font-display { font-family: var(--app-font-serif); }
 .soft-shadow { box-shadow: 0 12px 36px rgba(91, 37, 63, .07); }
 .cashier-main { padding: 12px clamp(8px, 1.4vw, 20px) 16px; }
@@ -343,7 +367,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 @media (prefers-reduced-motion: reduce) {
   .fade-up { animation: none; }
-  .app-sidebar, .app-sidebar__link, .app-sidebar__toggle { transition: none; }
+  .app-sidebar, .app-sidebar__link, .app-sidebar__toggle, .app-sidebar__edge { transition: none; }
   *, *::before, *::after { scroll-behavior: auto !important; }
 }
 .fade-up { animation: fadeUp .42s ease both; }
